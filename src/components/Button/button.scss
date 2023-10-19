@@ -1,0 +1,57 @@
+.button {
+    &__default {
+        font-size: 1rem;
+        background-color: #000000;
+        color: gray;
+        border: 3px double gray;
+        padding: .3vw;
+        height: 5rem;
+        width: 5rem;
+        border-radius: 50%;
+        cursor: pointer;
+        transition: .1s;
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        animation-timing-function: none;
+
+        &:hover {
+            // filter: brightness(110%);
+            border: 3px double #d1d1d1;
+        }
+
+    }
+
+    &__svg {
+        height: 1.6rem;
+        filter: invert(44%) sepia(15%) saturate(2286%) hue-rotate(73deg) brightness(98%) contrast(92%);
+    }
+}
+
+@media only screen and (max-width: 640px) {
+    .button {
+        &__default {
+            font-size: 4vw;
+            background-color: #c1b7e0;
+            width: fit-content;
+            padding: 3vw;
+            border-radius: 1.5vw;
+            cursor: pointer;
+            transition: .2s;
+            border: none;
+
+            &:hover {
+                filter: brightness(110%);
+                transition: .3s;
+            }
+
+        }
+
+        &__svg {
+            height: 8vw;
+            padding: 1vw;
+        }
+    }
+}

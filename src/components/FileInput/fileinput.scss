@@ -1,0 +1,14 @@
+.fileinput {
+    &__container {
+        height: fit-content;
+        width: fit-content;
+        border-radius: 50%;
+        cursor: pointer;
+        transition: .1s;
+        background-color: #868686;
+
+        &:hover {
+            background-color: #babae0;
+        }
+    }
+}

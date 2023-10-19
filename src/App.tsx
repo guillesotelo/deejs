@@ -1,25 +1,43 @@
-import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+import React, { useEffect, useState } from 'react';
+import { Switch, Route, useLocation } from "react-router-dom";
+import Home from "./pages/Home/Home";
+import './scss/app.scss'
+import { AppProvider } from './AppContext';
+import ReactGA from 'react-ga4';
 
-function App() {
+const App: React.FC = () => {
+  const isMobile = window.screen.width <= 768
+  const [search, setSearch] = useState<string[]>([])
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const location = useLocation()
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+
+    ReactGA.send({
+      hitType: 'pageview',
+      page: window.location.pathname
+    })
+  }, [location, window.location.pathname])
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <AppProvider
+      search={search}
+      setSearch={setSearch}
+      isMobile={isMobile}
+      isLoggedIn={isLoggedIn}
+      setIsLoggedIn={setIsLoggedIn}
+    >
+      <Switch>
+        <Route exact path="/">
+            <Home />
+        </Route>
+
+        <Route>
+            <Home />
+        </Route>
+      </Switch>
+    </AppProvider>
   );
 }
 

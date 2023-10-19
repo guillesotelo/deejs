@@ -1,0 +1,15 @@
+.home {
+    &__container {
+        display: flex;
+        flex-direction: column;
+        // padding: 1rem;
+    }
+
+}
+
+@media only screen and (max-width: 640px) {
+    .home {
+        &__container {
+        }
+    }
+}

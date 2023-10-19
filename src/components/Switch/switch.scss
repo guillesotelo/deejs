@@ -1,0 +1,100 @@
+.switch {
+    &__container {
+        border-radius: 1rem;
+        display: flex;
+        flex-direction: column;
+        transition: .3s;
+        cursor: pointer;
+
+        &:hover .switch__slider--on {
+            background-color: rgb(195, 195, 195);
+        }
+
+        &:hover .switch__slider--off {
+            background-color: rgb(195, 195, 195);
+        }
+
+    }
+
+    &__row {
+        width: 5vw;
+        height: 2rem;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        position: relative;
+        border-radius: 1rem;
+        transition: .3s;
+        border: 2px solid gray;
+    }
+
+    &__label {
+        margin: 0 0 .5vh 0;
+        font-size: .8rem;
+        font-weight: normal;
+        width: 100%;
+        color: #696869;
+    }
+
+    &__on {
+        width: 2.5vw;
+        height: 2rem;
+        font-size: 1rem;
+        text-align: center;
+        line-height: 2rem;
+        margin: 0;
+        border-top-left-radius: 1rem;
+        border-bottom-left-radius: 1rem;
+        // background-color: rgb(218, 130, 130);
+        color: #4e4e4e;
+        transition: .3s;
+    }
+
+    &__off {
+        width: 2.5vw;
+        height: 2rem;
+        font-size: 1rem;
+        text-align: center;
+        line-height: 2rem;
+        margin: 0;
+        border-top-right-radius: 1rem;
+        border-bottom-right-radius: 1rem;
+        // background-color: rgb(112, 191, 112);
+        color: #4e4e4e;
+        transition: .3s;
+    }
+
+    &__slider {
+        &--off {
+            width: 2.5vw;
+            height: 2rem;
+            line-height: 2rem;
+            background-color: lightgray;
+            border: 2px solid gray;
+            border-radius: 1rem;
+            position: absolute;
+            transform: translateX(-5%);
+            transition: .3s;
+            z-index: 2;
+            text-align: center;
+            color: gray;
+            font-size: .8rem;
+        }
+
+        &--on {
+            width: 2.5vw;
+            height: 2rem;
+            line-height: 2rem;
+            background-color: lightgray;
+            border: 2px solid gray;
+            border-radius: 1rem;
+            position: absolute;
+            transform: translateX(95%);
+            transition: .3s;
+            z-index: 2;
+            text-align: center;
+            color: gray;
+            font-size: .8rem;
+        }
+    }
+}

@@ -1,0 +1,14 @@
+.jogwheel {
+    &__container {
+        height: 15rem;
+    }
+
+    &__svg {
+        height: 15rem;
+
+        &--playing {
+            height: 15rem;
+            animation: playwheel 4s linear infinite;
+        }
+    }
+}
