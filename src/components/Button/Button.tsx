@@ -24,12 +24,19 @@ export default function Button({ label, handleClick, className, bgColor, textCol
                 opacity: disabled ? '.3' : '',
                 cursor: disabled ? 'not-allowed' : '',
                 padding: 0,
-                width: '4.7rem',
-                height: '4.7rem',
+                width: '5vw',
+                height: '5vw',
                 animation: animate ? 'playbutton 1.2s infinite' : '',
             }}
         >
-            <img src={svg} alt="Button" className='button__svg' />
+            <img
+                src={svg}
+                alt="Button"
+                className='button__svg'
+                style={{
+                    filter: animate ? 'invert(58%) sepia(41%) saturate(6140%) hue-rotate(86deg) brightness(114%) contrast(119%)' : ''
+                }}
+            />
         </div>
         :
         <button

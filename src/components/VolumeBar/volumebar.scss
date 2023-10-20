@@ -1,0 +1,44 @@
+.volumebar {
+    &__container {
+        height: 20vw;
+        border: 1px solid #595959;
+        border-radius: .2rem;
+        background-color: black;
+    }
+
+    &__vumeter {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-evenly;
+        align-items: center;
+        height: 100%;
+    }
+
+    &__bar {
+        height: calc(100%/5);
+        border-radius: .1rem;
+        width: .3rem;
+        margin: .2rem;
+        background-color: #242424;
+
+        &-1 {
+            background-color: green;
+        }
+
+        &-2 {
+            background-color: green;
+        }
+
+        &-3 {
+            background-color: #de7a00;
+        }
+
+        &-4 {
+            background-color: #de7a00;
+        }
+
+        &-5 {
+            background-color: #bb0000;
+        }
+    }
+}

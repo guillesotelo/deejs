@@ -15,7 +15,7 @@ export default function Slider({ value, handleChange, orientation, scale }: Prop
         <div className="slider__container" style={{
             transform: orientation === 'v' ? `rotate(-90deg) scale(${scale || 1})` : `scale(${scale || 1})`
         }}>
-            <h4 className="slider__label"></h4>
+            {/* <h4 className="slider__label"></h4> */}
             <input
                 type="range"
                 value={value * 100}

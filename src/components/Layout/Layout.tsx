@@ -1,9 +1,11 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import JogWheel from '../JogWheel/JogWheel'
 import Button from '../Button/Button'
 import FileInput from '../FileInput/FileInput'
 import Slider from '../Slider/Slider'
 import PlayPause from '../../assets/icons/play-pause.svg'
+import Knob from '../Knob/Knob'
+import VolumeBar from '../VolumeBar/VolumeBar'
 
 type Props = {}
 
@@ -16,15 +18,71 @@ export default function Layout({ }: Props) {
     const [rightTrackAudio, setRightTrackAudio] = useState<HTMLAudioElement | null>()
     const [leftTrackName, setLeftTrackName] = useState('')
     const [rightTrackName, setRightTrackName] = useState('')
-    const [leftVolume, setLeftVolume] = useState(0.8);
-    const [rightVolume, setRightVolume] = useState(0.8);
-    const [mixer, setMixer] = useState(.5);
-    const [pitchLeft, setPitchLeft] = useState(.5);
-    const [pitchRight, setPitchRight] = useState(.5);
+    const [leftVolume, setLeftVolume] = useState(0.8)
+    const [rightVolume, setRightVolume] = useState(0.8)
+    const [mixer, setMixer] = useState(.5)
+    const [pitchLeft, setPitchLeft] = useState(.5)
+    const [pitchRight, setPitchRight] = useState(.5)
+    const [dbLeft, setDbLeft] = useState(0)
+    const [dbRught, setDbRight] = useState(0)
 
     useEffect(() => {
         document.onkeydown = handleKeyDown
     }, [])
+
+    useEffect(() => {
+        if (!leftTrackAudio) return
+
+        const audioContextLeft = new (window.AudioContext || (window as any).webkitAudioContext)()
+        const analyserLeft = audioContextLeft.createAnalyser()
+
+        const sourceLeft = audioContextLeft.createMediaElementSource(leftTrackAudio)
+        sourceLeft.connect(analyserLeft)
+        sourceLeft.connect(audioContextLeft.destination)
+
+        analyserLeft.fftSize = 256
+        analyserLeft.smoothingTimeConstant = 0.8
+
+        const dataArrayLeft = new Uint8Array(analyserLeft.frequencyBinCount)
+        function getVolumeInDecibelsLeft() {
+            analyserLeft.getByteFrequencyData(dataArrayLeft)
+            const sum = dataArrayLeft.reduce((acc, value) => acc + value, 0)
+            const average = sum / dataArrayLeft.length
+            const volumeInDecibels = 20 * Math.log10(average / 255)
+
+            setDbLeft(volumeInDecibels)
+            requestAnimationFrame(getVolumeInDecibelsLeft)
+        }
+
+        getVolumeInDecibelsLeft()
+    }, [leftTrackAudio])
+
+    useEffect(() => {
+        if (!rightTrackAudio) return
+
+        const audioContextRight = new (window.AudioContext || (window as any).webkitAudioContext)()
+        const analyserRight = audioContextRight.createAnalyser()
+
+        const sourceRight = audioContextRight.createMediaElementSource(rightTrackAudio)
+        sourceRight.connect(analyserRight)
+        sourceRight.connect(audioContextRight.destination)
+
+        analyserRight.fftSize = 256
+        analyserRight.smoothingTimeConstant = 0.8
+
+        const dataArrayRight = new Uint8Array(analyserRight.frequencyBinCount)
+        function getVolumeInDecibelsRight() {
+            analyserRight.getByteFrequencyData(dataArrayRight)
+            const sum = dataArrayRight.reduce((acc, value) => acc + value, 0)
+            const average = sum / dataArrayRight.length
+            const volumeInDecibels = 20 * Math.log10(average / 255)
+
+            setDbRight(volumeInDecibels)
+            requestAnimationFrame(getVolumeInDecibelsRight)
+        }
+        getVolumeInDecibelsRight()
+    }, [rightTrackAudio])
+
     useEffect(() => {
         const leftPlayer = new Audio(leftTrack)
         const rightPlayer = new Audio(rightTrack)
@@ -53,13 +111,28 @@ export default function Layout({ }: Props) {
     }, [leftVolume, rightVolume, mixer])
 
     const handleKeyDown = (e: any) => {
-        console.log(e)
+        // console.log('HIT', e.key)
         switch (e.key) {
+            case 'q':
+                e.preventDefault()
+                openFileLoaderLeft()
+                break
             case 'a':
                 stopLeftTrack()
                 break
             case 'z':
                 playLeftTrack()
+                break
+            case 's':
+                setLeftVolume((val) => val < 10 ? val + .01 : 10)
+                break
+            case 'x':
+                setLeftVolume((val) => val > .01 ? val - .01 : 0)
+                break
+
+            case 'y':
+                e.preventDefault()
+                openFileLoaderRight()
                 break
             case 'j':
                 stopRightTrack()
@@ -67,9 +140,33 @@ export default function Layout({ }: Props) {
             case 'm':
                 playRightTrack()
                 break
+            case 'h':
+                setRightVolume((val) => val < 10 ? val + .01 : 10)
+                break
+            case 'n':
+                setRightVolume((val) => val > .01 ? val - .01 : 0)
+                break
             default:
                 break
         }
+    }
+
+    useEffect(() => {
+        stopLeftTrack()
+    }, [leftTrack])
+
+    useEffect(() => {
+        stopRightTrack()
+    }, [rightTrack])
+
+    const openFileLoaderLeft = () => {
+        const input = document.getElementById('left-track-input')
+        if (input) input.click()
+    }
+
+    const openFileLoaderRight = () => {
+        const input = document.getElementById('right-track-input')
+        if (input) input.click()
     }
 
     const playLeftTrack = () => {
@@ -166,16 +263,29 @@ export default function Layout({ }: Props) {
                 </div>
             </div>
             <div className="layout__center">
-                DEEJS
                 <div className="layout__center-row">
                     <div className="layout__center-left">
+                        <div className="layout__knobs">
+                            <Knob label='HI' />
+                            <Knob label='MID' />
+                            <Knob label='LOW' />
+                        </div>
                         <Slider
                             value={leftVolume}
                             handleChange={handleLeftVolumeChange}
                             orientation='v'
                         />
                     </div>
+                    <div className="layout__center-center">
+                        <VolumeBar level={dbLeft} />
+                        <VolumeBar level={dbRught} />
+                    </div>
                     <div className="layout__center-right">
+                        <div className="layout__knobs">
+                            <Knob label='HI' />
+                            <Knob label='MID' />
+                            <Knob label='LOW' />
+                        </div>
                         <Slider
                             value={rightVolume}
                             handleChange={handleRightVolumeChange}
@@ -183,7 +293,7 @@ export default function Layout({ }: Props) {
                         />
                     </div>
                 </div>
-                <div className="layout__center-row">
+                <div className="layout__center-mix">
                     <Slider
                         value={mixer}
                         handleChange={handleMixer}
