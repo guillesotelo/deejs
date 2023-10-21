@@ -15,7 +15,6 @@ export default function VolumeBar({ level }: Props) {
         if (level > -10 && level <= -8) return 3
         if (level > -8 && level <= -6) return 4
         if (level > -6) return 5
-
         return 0
     }
 

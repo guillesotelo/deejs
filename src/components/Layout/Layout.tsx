@@ -23,12 +23,12 @@ export default function Layout({ }: Props) {
     const [mixer, setMixer] = useState(.5)
     const [pitchLeft, setPitchLeft] = useState(.5)
     const [pitchRight, setPitchRight] = useState(.5)
-    const [dbLeft, setDbLeft] = useState(0)
-    const [dbRught, setDbRight] = useState(0)
+    const [dbLeft, setDbLeft] = useState(-100)
+    const [dbRught, setDbRight] = useState(-100)
 
     useEffect(() => {
         document.onkeydown = handleKeyDown
-    }, [])
+    }, [leftTrackAudio, playLeft, rightTrackAudio, playRight])
 
     useEffect(() => {
         if (!leftTrackAudio) return
@@ -111,10 +111,9 @@ export default function Layout({ }: Props) {
     }, [leftVolume, rightVolume, mixer])
 
     const handleKeyDown = (e: any) => {
-        // console.log('HIT', e.key)
-        switch (e.key) {
+        console.log('HIT', e.key)
+        switch (e.key.toLowerCase()) {
             case 'q':
-                e.preventDefault()
                 openFileLoaderLeft()
                 break
             case 'a':
@@ -124,27 +123,33 @@ export default function Layout({ }: Props) {
                 playLeftTrack()
                 break
             case 's':
-                setLeftVolume((val) => val < 10 ? val + .01 : 10)
+                setLeftVolume((val) => val + .02 < 1 ? val + .02 : 1)
                 break
             case 'x':
-                setLeftVolume((val) => val > .01 ? val - .01 : 0)
+                setLeftVolume((val) => val > .02 ? val - .02 : 0)
+                break
+
+            case 'f':
+                setMixer((val) => val > .02 ? val - .02 : 0)
+                break
+            case 'g':
+                setMixer((val) => val + .02 < 1 ? val + .02 : 1)
                 break
 
             case 'y':
-                e.preventDefault()
                 openFileLoaderRight()
                 break
-            case 'j':
+            case 'k':
                 stopRightTrack()
                 break
             case 'm':
                 playRightTrack()
                 break
-            case 'h':
-                setRightVolume((val) => val < 10 ? val + .01 : 10)
+            case 'j':
+                setRightVolume((val) => val + .02 < 1 ? val + .02 : 1)
                 break
             case 'n':
-                setRightVolume((val) => val > .01 ? val - .01 : 0)
+                setRightVolume((val) => val > .02 ? val - .02 : 0)
                 break
             default:
                 break
@@ -225,7 +230,7 @@ export default function Layout({ }: Props) {
     }
 
     return (
-        <div className="layout__container" onKeyDown={handleKeyDown} tabIndex={0} style={{ outline: 'none' }}>
+        <div className="layout__container" tabIndex={0} style={{ outline: 'none' }}>
             <div className="layout__left">
                 <canvas id='waveform-right'></canvas>
                 <h2 className="layout__track-name">{leftTrackName || 'No track loaded'}</h2>
