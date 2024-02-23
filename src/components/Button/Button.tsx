@@ -14,7 +14,7 @@ type Props = {
 
 export default function Button({ label, handleClick, className, bgColor, textColor, disabled, svg, style, animate }: Props) {
     return svg ?
-        <div
+        <button
             className="button__default"
             onClick={handleClick}
             style={{
@@ -23,9 +23,6 @@ export default function Button({ label, handleClick, className, bgColor, textCol
                 color: textColor || '',
                 opacity: disabled ? '.3' : '',
                 cursor: disabled ? 'not-allowed' : '',
-                padding: 0,
-                width: '5vw',
-                height: '5vw',
                 animation: animate ? 'playbutton 1.2s infinite' : '',
             }}
         >
@@ -37,7 +34,7 @@ export default function Button({ label, handleClick, className, bgColor, textCol
                     filter: animate ? 'invert(58%) sepia(41%) saturate(6140%) hue-rotate(86deg) brightness(114%) contrast(119%)' : ''
                 }}
             />
-        </div>
+        </button>
         :
         <button
             className={className || 'button__default'}

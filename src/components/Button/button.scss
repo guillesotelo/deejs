@@ -1,12 +1,12 @@
 .button {
     &__default {
-        font-size: 1vw;
+        font-size: 1rem;
         background-color: #000000;
         color: gray;
         border: 3px double gray;
-        padding: .3vw;
-        height: 5.5vw;
-        width: 5.5vw;
+        padding: .5rem;
+        height: 5.5rem;
+        width: 5.5rem;
         border-radius: 50%;
         cursor: pointer;
         transition: .1s;
@@ -25,33 +25,7 @@
     }
 
     &__svg {
-        height: 1.6vw;
+        height: 1.6rem;
         filter: invert(44%) sepia(15%) saturate(2286%) hue-rotate(73deg) brightness(98%) contrast(92%);
-    }
-}
-
-@media only screen and (max-width: 640px) {
-    .button {
-        &__default {
-            font-size: 4vw;
-            background-color: #c1b7e0;
-            width: fit-content;
-            padding: 3vw;
-            border-radius: 1.5vw;
-            cursor: pointer;
-            transition: .2s;
-            border: none;
-
-            &:hover {
-                filter: brightness(110%);
-                transition: .3s;
-            }
-
-        }
-
-        &__svg {
-            height: 8vw;
-            padding: 1vw;
-        }
     }
 }

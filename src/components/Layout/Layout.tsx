@@ -12,9 +12,7 @@ type Props = {}
 export default function Layout({ }: Props) {
     const [playLeft, setPlayLeft] = useState(false)
     const [playRight, setPlayRight] = useState(false)
-    const [leftTrack, setLeftTrack] = useState('')
     const [leftTrackAudio, setLeftTrackAudio] = useState<HTMLAudioElement | null>()
-    const [rightTrack, setRightTrack] = useState('')
     const [rightTrackAudio, setRightTrackAudio] = useState<HTMLAudioElement | null>()
     const [leftTrackName, setLeftTrackName] = useState('')
     const [rightTrackName, setRightTrackName] = useState('')
@@ -25,6 +23,11 @@ export default function Layout({ }: Props) {
     const [pitchRight, setPitchRight] = useState(.5)
     const [dbLeft, setDbLeft] = useState(-100)
     const [dbRught, setDbRight] = useState(-100)
+    const [leftFilterNode, setLeftFilterNode] = useState<{ [key: string]: BiquadFilterNode }>({})
+    const [rightFilterNode, setRightFilterNode] = useState<{ [key: string]: BiquadFilterNode }>({})
+
+    const leftAudioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
+    const rightAudioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
 
     useEffect(() => {
         document.onkeydown = handleKeyDown
@@ -33,12 +36,11 @@ export default function Layout({ }: Props) {
     useEffect(() => {
         if (!leftTrackAudio) return
 
-        const audioContextLeft = new (window.AudioContext || (window as any).webkitAudioContext)()
-        const analyserLeft = audioContextLeft.createAnalyser()
+        const analyserLeft = leftAudioContext.createAnalyser()
 
-        const sourceLeft = audioContextLeft.createMediaElementSource(leftTrackAudio)
+        const sourceLeft = leftAudioContext.createMediaElementSource(leftTrackAudio)
         sourceLeft.connect(analyserLeft)
-        sourceLeft.connect(audioContextLeft.destination)
+        sourceLeft.connect(leftAudioContext.destination)
 
         analyserLeft.fftSize = 256
         analyserLeft.smoothingTimeConstant = 0.8
@@ -60,12 +62,11 @@ export default function Layout({ }: Props) {
     useEffect(() => {
         if (!rightTrackAudio) return
 
-        const audioContextRight = new (window.AudioContext || (window as any).webkitAudioContext)()
-        const analyserRight = audioContextRight.createAnalyser()
+        const analyserRight = rightAudioContext.createAnalyser()
 
-        const sourceRight = audioContextRight.createMediaElementSource(rightTrackAudio)
+        const sourceRight = rightAudioContext.createMediaElementSource(rightTrackAudio)
         sourceRight.connect(analyserRight)
-        sourceRight.connect(audioContextRight.destination)
+        sourceRight.connect(rightAudioContext.destination)
 
         analyserRight.fftSize = 256
         analyserRight.smoothingTimeConstant = 0.8
@@ -84,14 +85,6 @@ export default function Layout({ }: Props) {
     }, [rightTrackAudio])
 
     useEffect(() => {
-        const leftPlayer = new Audio(leftTrack)
-        const rightPlayer = new Audio(rightTrack)
-
-        if (leftTrack) setLeftTrackAudio(leftPlayer)
-        if (rightTrack) setRightTrackAudio(rightPlayer)
-    }, [leftTrack, rightTrack])
-
-    useEffect(() => {
         const leftPlayer = leftTrackAudio
         const rightPlayer = rightTrackAudio
         const leftMix = leftVolume + (mixer > 0.5 ? -(leftVolume * (mixer - 0.5) * 2) : 0)
@@ -100,18 +93,32 @@ export default function Layout({ }: Props) {
         if (leftPlayer) leftPlayer.volume = leftMix
         if (rightPlayer) rightPlayer.volume = rightMix
 
-        if (leftTrack) {
+        if (leftTrackName) {
             setLeftTrackAudio(leftPlayer)
             leftPlayer?.addEventListener('ended', () => setPlayLeft(false))
         }
-        if (rightTrack) {
+        if (rightTrackName) {
             setRightTrackAudio(rightPlayer)
             rightPlayer?.addEventListener('ended', () => setPlayRight(false))
         }
     }, [leftVolume, rightVolume, mixer])
 
+    const loadTrack = (side: string, track: string) => {
+        if (track) {
+            const player = new Audio(track)
+            if (side === 'left') {
+                stopLeftTrack()
+                setLeftTrackAudio(player)
+            }
+            if (side === 'right') {
+                stopRightTrack()
+                setRightTrackAudio(player)
+            }
+        }
+    }
+
     const handleKeyDown = (e: any) => {
-        console.log('HIT', e.key)
+        // console.log('HIT', e.key)
         switch (e.key.toLowerCase()) {
             case 'q':
                 openFileLoaderLeft()
@@ -135,7 +142,6 @@ export default function Layout({ }: Props) {
             case 'g':
                 setMixer((val) => val + .02 < 1 ? val + .02 : 1)
                 break
-
             case 'y':
                 openFileLoaderRight()
                 break
@@ -155,14 +161,6 @@ export default function Layout({ }: Props) {
                 break
         }
     }
-
-    useEffect(() => {
-        stopLeftTrack()
-    }, [leftTrack])
-
-    useEffect(() => {
-        stopRightTrack()
-    }, [rightTrack])
 
     const openFileLoaderLeft = () => {
         const input = document.getElementById('left-track-input')
@@ -222,11 +220,77 @@ export default function Layout({ }: Props) {
     }
 
     const handlePitchLeft = (e: any) => {
-        setPitchLeft(e.target.value / 100)
+        const { value } = e.target
+        const decimaVal = value / 100
+        setPitchLeft(decimaVal)
+        if (leftTrackAudio) {
+            const newValue = 1 + ((decimaVal - 0.5) / 5)
+            const newPitch = leftTrackAudio
+            newPitch.playbackRate = newValue
+            setLeftTrackAudio(newPitch)
+        }
     }
 
     const handlePitchRight = (e: any) => {
-        setPitchRight(e.target.value / 100)
+        const { value } = e.target
+        const decimaVal = value / 100
+        setPitchRight(decimaVal)
+        if (rightTrackAudio) {
+            const newValue = 1 + ((decimaVal - 0.5) / 5)
+            const newPitch = rightTrackAudio
+            newPitch.playbackRate = newValue
+            setRightTrackAudio(newPitch)
+        }
+    }
+
+    const handleEq = (channel: string, type: string, value: number) => {
+        const audioContext = channel === 'left' ? leftAudioContext : rightAudioContext
+        const trackAudio = channel === 'left' ? leftTrackAudio : rightTrackAudio
+
+        if (trackAudio) {
+            // Get the existing filter node if it already exists, otherwise create a new one
+            const filterNode = channel === 'left' ? leftFilterNode : rightFilterNode
+            const filter = filterNode ? filterNode[type] : audioContext.createBiquadFilter()
+
+            // Update filter parameters
+            filter.type = type as BiquadFilterType
+            filter.frequency.value = 1000 // Adjust as needed
+            filter.gain.value = (value - 50) / 10 // Adjust gain based on slider value
+            filter.Q.value = 1 // Adjust Q factor as needed
+
+            // Connect the audio source to the filter, and then to the destination
+            const source = audioContext.createMediaElementSource(trackAudio)
+            source.connect(filter)
+            filter.connect(audioContext.destination)
+
+            // Store the filter node for future reference
+            if (channel === 'left') {
+                setLeftFilterNode({ ...leftFilterNode, [type]: filter })
+            } else {
+                setRightFilterNode({ ...rightFilterNode, [type]: filter })
+            }
+
+            // Apply the changes to the playing track
+            applyFilterChanges(channel, type, value)
+        }
+    }
+
+    const applyFilterChanges = (channel: string, type: string, value: number) => {
+        const audioContext = channel === 'left' ? leftAudioContext : rightAudioContext
+        const filterNode = channel === 'left' ? leftFilterNode : rightFilterNode
+
+        if (filterNode[type]) {
+            let source
+            if (channel === 'left' && leftTrackAudio) source = audioContext.createMediaElementSource(leftTrackAudio)
+            else if (channel === 'right' && rightTrackAudio) source = audioContext.createMediaElementSource(rightTrackAudio)
+            if (source) {
+                // Disconnect the previous filter node from the destination
+                filterNode[type].disconnect()
+                // Connect the audio source to the updated filter node, and then to the destination
+                source.connect(filterNode[type])
+                filterNode[type].connect(audioContext.destination)
+            }
+        }
     }
 
     return (
@@ -235,12 +299,12 @@ export default function Layout({ }: Props) {
                 <canvas id='waveform-right'></canvas>
                 <h2 className="layout__track-name">{leftTrackName || 'No track loaded'}</h2>
                 <FileInput
-                    setFile={setLeftTrack}
+                    setFile={file => loadTrack('left', file)}
                     setFileName={setLeftTrackName}
                     inputId='left-track-input'>
                     <JogWheel
                         play={playLeft}
-                        loaded={leftTrack} />
+                        loaded={leftTrackName} />
                 </FileInput>
                 <div className="layout__player">
                     <div className="layout__player-btns">
@@ -263,6 +327,7 @@ export default function Layout({ }: Props) {
                             handleChange={handlePitchLeft}
                             orientation='v'
                             scale={0.7}
+                            label={pitchLeft}
                         />
                     </div>
                 </div>
@@ -271,9 +336,9 @@ export default function Layout({ }: Props) {
                 <div className="layout__center-row">
                     <div className="layout__center-left">
                         <div className="layout__knobs">
-                            <Knob label='HI' />
-                            <Knob label='MID' />
-                            <Knob label='LOW' />
+                            <Knob label='HI' setValue={(value) => handleEq('left', 'highshelf', value)} />
+                            <Knob label='MID' setValue={(value) => handleEq('left', 'peaking', value)} />
+                            <Knob label='LOW' setValue={(value) => handleEq('left', 'lowshelf', value)} />
                         </div>
                         <Slider
                             value={leftVolume}
@@ -287,9 +352,9 @@ export default function Layout({ }: Props) {
                     </div>
                     <div className="layout__center-right">
                         <div className="layout__knobs">
-                            <Knob label='HI' />
-                            <Knob label='MID' />
-                            <Knob label='LOW' />
+                            <Knob label='HI' setValue={(value) => handleEq('right', 'highshelf', value)} />
+                            <Knob label='MID' setValue={(value) => handleEq('right', 'peaking', value)} />
+                            <Knob label='LOW' setValue={(value) => handleEq('right', 'lowshelf', value)} />
                         </div>
                         <Slider
                             value={rightVolume}
@@ -309,12 +374,12 @@ export default function Layout({ }: Props) {
                 <canvas id='waveform-left'></canvas>
                 <h2 className="layout__track-name">{rightTrackName || 'No track loaded'}</h2>
                 <FileInput
-                    setFile={setRightTrack}
+                    setFile={file => loadTrack('right', file)}
                     setFileName={setRightTrackName}
                     inputId='right-track-input'>
                     <JogWheel
                         play={playRight}
-                        loaded={rightTrack} />
+                        loaded={rightTrackName} />
                 </FileInput>
                 <div className="layout__player">
                     <div className="layout__player-btns">
