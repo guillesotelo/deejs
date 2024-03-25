@@ -10,10 +10,10 @@ import VolumeBar from '../VolumeBar/VolumeBar'
 type Props = {}
 
 export default function Layout({ }: Props) {
-    const [playLeft, setPlayLeft] = useState(false)
-    const [playRight, setPlayRight] = useState(false)
     const [leftTrackAudio, setLeftTrackAudio] = useState<HTMLAudioElement | null>()
     const [rightTrackAudio, setRightTrackAudio] = useState<HTMLAudioElement | null>()
+    const [playLeft, setPlayLeft] = useState(false)
+    const [playRight, setPlayRight] = useState(false)
     const [leftTrackName, setLeftTrackName] = useState('')
     const [rightTrackName, setRightTrackName] = useState('')
     const [leftVolume, setLeftVolume] = useState(0.8)
