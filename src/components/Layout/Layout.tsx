@@ -6,10 +6,20 @@ import Slider from '../Slider/Slider'
 import PlayPause from '../../assets/icons/play-pause.svg'
 import Knob from '../Knob/Knob'
 import VolumeBar from '../VolumeBar/VolumeBar'
+import Switch from '../Switch/Switch'
+import WaveSurfer from 'wavesurfer.js'
 
 type Props = {}
 
 export default function Layout({ }: Props) {
+    const [leftTrackPath, setLeftTrackPath] = useState('')
+    const [rightTrackPath, setRightTrackPath] = useState('')
+    const [leftLoading, setLeftLoading] = useState(false)
+    const [rightLoading, setRightLoading] = useState(false)
+    const [leftWavesurfer, setLeftWavesurfer] = useState<WaveSurfer | null>(null)
+    const [rightWavesurfer, setRightWavesurfer] = useState<WaveSurfer | null>(null)
+
+
     const [leftTrackAudio, setLeftTrackAudio] = useState<HTMLAudioElement | null>()
     const [rightTrackAudio, setRightTrackAudio] = useState<HTMLAudioElement | null>()
     const [playLeft, setPlayLeft] = useState(false)
@@ -25,9 +35,56 @@ export default function Layout({ }: Props) {
     const [dbRught, setDbRight] = useState(-100)
     const [leftFilterNode, setLeftFilterNode] = useState<{ [key: string]: BiquadFilterNode }>({})
     const [rightFilterNode, setRightFilterNode] = useState<{ [key: string]: BiquadFilterNode }>({})
+    const [showLayouts, setShowLayouts] = useState(false)
 
     const leftAudioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
     const rightAudioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
+
+    const leftWaveformRef = useRef<any>()
+    const leftWaveSurferRef = useRef<any>({ isPlaying: playLeft })
+    const rightWaveformRef = useRef<any>()
+    const rightWaveSurferRef = useRef<any>({ isPlaying: playLeft })
+
+    useEffect(() => {
+        if (leftWaveformRef && leftWaveformRef.current) {
+            const waveSurferInstance = WaveSurfer.create({
+                container: leftWaveformRef.current,
+                height: 50,
+            })
+            waveSurferInstance.load(leftTrackPath)
+            waveSurferInstance.on('ready', () => {
+                setLeftLoading(false)
+                leftWaveSurferRef.current = waveSurferInstance
+            })
+
+            setLeftWavesurfer(waveSurferInstance)
+
+            return () => {
+                waveSurferInstance.destroy()
+            }
+        }
+    }, [leftTrackPath])
+
+    useEffect(() => {
+        if (rightWaveformRef && rightWaveformRef.current) {
+            const waveSurferInstance = WaveSurfer.create({
+                container: rightWaveformRef.current,
+                height: 50,
+            })
+            waveSurferInstance.load(leftTrackPath)
+            waveSurferInstance.on('ready', () => {
+                setRightLoading(false)
+                rightWaveSurferRef.current = waveSurferInstance
+            })
+
+            setRightWavesurfer(waveSurferInstance)
+
+            return () => {
+                waveSurferInstance.destroy()
+            }
+        }
+    }, [rightTrackPath])
+
 
     useEffect(() => {
         document.onkeydown = handleKeyDown
@@ -85,22 +142,10 @@ export default function Layout({ }: Props) {
     }, [rightTrackAudio])
 
     useEffect(() => {
-        const leftPlayer = leftTrackAudio
-        const rightPlayer = rightTrackAudio
         const leftMix = leftVolume + (mixer > 0.5 ? -(leftVolume * (mixer - 0.5) * 2) : 0)
         const rightMix = rightVolume + (mixer < 0.5 ? (rightVolume * (mixer - 0.5) * 2) : 0)
-
-        if (leftPlayer) leftPlayer.volume = leftMix
-        if (rightPlayer) rightPlayer.volume = rightMix
-
-        if (leftTrackName) {
-            setLeftTrackAudio(leftPlayer)
-            leftPlayer?.addEventListener('ended', () => setPlayLeft(false))
-        }
-        if (rightTrackName) {
-            setRightTrackAudio(rightPlayer)
-            rightPlayer?.addEventListener('ended', () => setPlayRight(false))
-        }
+        leftWavesurfer?.setVolume(leftMix)
+        rightWavesurfer?.setVolume(rightMix)
     }, [leftVolume, rightVolume, mixer])
 
     const loadTrack = (side: string, track: string) => {
@@ -109,10 +154,12 @@ export default function Layout({ }: Props) {
             if (side === 'left') {
                 stopLeftTrack()
                 setLeftTrackAudio(player)
+                setLeftTrackPath(track)
             }
             if (side === 'right') {
                 stopRightTrack()
                 setRightTrackAudio(player)
+                setRightTrackPath(track)
             }
         }
     }
@@ -173,34 +220,32 @@ export default function Layout({ }: Props) {
     }
 
     const playLeftTrack = () => {
-        if (leftTrackAudio) {
-            if (!playLeft) leftTrackAudio.play()
-            else leftTrackAudio.pause()
-            setPlayLeft(!playLeft)
+        if (leftWaveSurferRef.current && leftWaveSurferRef.current.pause) {
+            if (leftWaveSurferRef.current.isPlaying()) leftWaveSurferRef.current.pause()
+            else leftWaveSurferRef.current.play()
+            setPlayLeft(leftWaveSurferRef.current.isPlaying())
         }
     }
 
     const playRightTrack = () => {
-        if (rightTrackAudio) {
-            if (!playRight) rightTrackAudio.play()
-            else rightTrackAudio.pause()
-            setPlayRight(!playRight)
+        if (rightWaveSurferRef.current && rightWaveSurferRef.current.play) {
+            if (rightWaveSurferRef.current.isPlaying()) rightWaveSurferRef.current.pause()
+            else rightWaveSurferRef.current.play()
+            setPlayRight(rightWaveSurferRef.current.isPlaying())
         }
     }
 
     const stopLeftTrack = () => {
-        if (leftTrackAudio) {
-            leftTrackAudio.pause()
-            leftTrackAudio.currentTime = 0
-            setPlayLeft(false)
+        if (leftWaveSurferRef.current && leftWaveSurferRef.current.stop) {
+            leftWaveSurferRef.current.stop()
+            setPlayLeft(leftWaveSurferRef.current.isPlaying())
         }
     }
 
     const stopRightTrack = () => {
-        if (rightTrackAudio) {
-            rightTrackAudio.pause()
-            rightTrackAudio.currentTime = 0
-            setPlayRight(false)
+        if (rightWaveSurferRef.current && rightWaveSurferRef.current.stop) {
+            rightWaveSurferRef.current.stop()
+            setPlayRight(rightWaveSurferRef.current.isPlaying())
         }
     }
 
@@ -223,24 +268,14 @@ export default function Layout({ }: Props) {
         const { value } = e.target
         const decimaVal = value / 100
         setPitchLeft(decimaVal)
-        if (leftTrackAudio) {
-            const newValue = 1 + ((decimaVal - 0.5) / 5)
-            const newPitch = leftTrackAudio
-            newPitch.playbackRate = newValue
-            setLeftTrackAudio(newPitch)
-        }
+        leftWavesurfer?.setPlaybackRate(1 + ((decimaVal - 0.5) / 5))
     }
 
     const handlePitchRight = (e: any) => {
         const { value } = e.target
         const decimaVal = value / 100
         setPitchRight(decimaVal)
-        if (rightTrackAudio) {
-            const newValue = 1 + ((decimaVal - 0.5) / 5)
-            const newPitch = rightTrackAudio
-            newPitch.playbackRate = newValue
-            setRightTrackAudio(newPitch)
-        }
+        rightWavesurfer?.setPlaybackRate(1 + ((decimaVal - 0.5) / 5))
     }
 
     const handleEq = (channel: string, type: string, value: number) => {
@@ -295,16 +330,30 @@ export default function Layout({ }: Props) {
 
     return (
         <div className="layout__container" tabIndex={0} style={{ outline: 'none' }}>
+            <Switch
+                label='Show Layouts'
+                on='YES'
+                off='NO'
+                value={showLayouts}
+                setValue={setShowLayouts}
+                style={{ position: 'absolute', top: '1rem', right: '1rem' }}
+            />
             <div className="layout__left">
-                <canvas id='waveform-right'></canvas>
+                <div className="waveform__wrapper">
+                    {leftTrackPath && leftLoading ? <p className="waveform__loading">Loading...</p> : ''}
+                    <div ref={leftWaveformRef} className='waveform__container' />
+                </div>
                 <h2 className="layout__track-name">{leftTrackName || 'No track loaded'}</h2>
                 <FileInput
                     setFile={file => loadTrack('left', file)}
                     setFileName={setLeftTrackName}
+                    showLayouts={showLayouts}
                     inputId='left-track-input'>
-                    <JogWheel
-                        play={playLeft}
-                        loaded={leftTrackName} />
+                    {showLayouts ?
+                        <JogWheel
+                            play={playLeft}
+                            loaded={leftTrackName} />
+                        : ''}
                 </FileInput>
                 <div className="layout__player">
                     <div className="layout__player-btns">
@@ -371,15 +420,21 @@ export default function Layout({ }: Props) {
                 </div>
             </div>
             <div className="layout__right">
-                <canvas id='waveform-left'></canvas>
+                <div className="waveform__wrapper">
+                    {rightTrackPath && rightLoading ? <p className="waveform__loading">Loading...</p> : ''}
+                    <div ref={rightWaveformRef} className='waveform__container' />
+                </div>
                 <h2 className="layout__track-name">{rightTrackName || 'No track loaded'}</h2>
                 <FileInput
                     setFile={file => loadTrack('right', file)}
                     setFileName={setRightTrackName}
+                    showLayouts={showLayouts}
                     inputId='right-track-input'>
-                    <JogWheel
-                        play={playRight}
-                        loaded={rightTrackName} />
+                    {showLayouts ?
+                        <JogWheel
+                            play={playRight}
+                            loaded={rightTrackName} />
+                        : ''}
                 </FileInput>
                 <div className="layout__player">
                     <div className="layout__player-btns">

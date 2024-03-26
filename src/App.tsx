@@ -6,9 +6,6 @@ import { AppProvider } from './AppContext';
 import ReactGA from 'react-ga4';
 
 const App: React.FC = () => {
-  const isMobile = window.screen.width <= 768
-  const [search, setSearch] = useState<string[]>([])
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
   const location = useLocation()
 
   useEffect(() => {
@@ -21,13 +18,7 @@ const App: React.FC = () => {
   }, [location, window.location.pathname])
 
   return (
-    <AppProvider
-      search={search}
-      setSearch={setSearch}
-      isMobile={isMobile}
-      isLoggedIn={isLoggedIn}
-      setIsLoggedIn={setIsLoggedIn}
-    >
+    <AppProvider>
       <Switch>
         <Route exact path="/">
             <Home />

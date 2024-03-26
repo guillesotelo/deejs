@@ -1,30 +1,32 @@
-import React, { createContext } from 'react'
+import React, { createContext, useState } from 'react'
+import { AppContextType } from './types'
 
-type AppContextType = {
-    isMobile: boolean
-    search: string[]
-    setSearch: (search: string[]) => void
-    isLoggedIn: boolean
-    setIsLoggedIn: (value: boolean) => void
-    children: React.ReactNode
+export const AppContext = createContext<AppContextType>({
+    isMobile: false,
+    isLoggedIn: null,
+    setIsLoggedIn: () => { },
+})
+
+type Props = {
+    children?: React.ReactNode
 }
 
-export const AppContext = createContext<AppContextType>({} as AppContextType);
+export const AppProvider = ({ children }: Props) => {
+    const isMobile = window.screen.width <= 768
+    const [isLoggedIn, setIsLoggedIn] = useState(false)
 
-export const AppProvider: React.FC<AppContextType> = ({
-    isMobile,
-    setIsLoggedIn,
-    isLoggedIn,
-    search,
-    setSearch,
-    children
-}) => (
-    <AppContext.Provider value={{
-        search,
-        setSearch,
+    const contextValue = React.useMemo(() => ({
         isMobile,
         setIsLoggedIn,
         isLoggedIn,
-        children
-    }}>{children}</AppContext.Provider>
-);
+    }), [
+        isMobile,
+        setIsLoggedIn,
+        isLoggedIn,
+    ])
+
+
+    return <AppContext.Provider value={contextValue}>
+        {children}
+    </AppContext.Provider>
+}

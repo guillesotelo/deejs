@@ -5,9 +5,10 @@ type Props = {
     setFileName: (name: string) => void
     children: React.ReactNode
     inputId: string
+    showLayouts?: boolean
 }
 
-export default function FileInput({ setFile, setFileName, inputId, children }: Props) {
+export default function FileInput({ setFile, setFileName, inputId, children, showLayouts }: Props) {
     const [dragging, setDragging] = useState(false)
 
     const loadFile = (e: SyntheticEvent) => {
@@ -21,7 +22,7 @@ export default function FileInput({ setFile, setFileName, inputId, children }: P
             reader.onload = (event) => {
                 const fileContent = event?.target?.result
                 setFile(fileContent)
-                setFileName(files[0].name)
+                setFileName(files[0].name.split('.')[0])
             }
             reader.readAsDataURL(files[0])
         }
@@ -55,7 +56,7 @@ export default function FileInput({ setFile, setFileName, inputId, children }: P
             onClick={openFileLoader}
         >
             {children}
-            <input type="file" onChange={loadFile} className="fileinput__input" id={inputId} style={{ display: 'none' }} />
+            <input type="file" accept='audio/*' onChange={loadFile} className="fileinput__input" id={inputId} style={{ display: showLayouts ? 'none' : 'block' }} />
         </div>
     )
 }

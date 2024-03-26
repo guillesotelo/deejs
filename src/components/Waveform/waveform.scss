@@ -1,0 +1,17 @@
+.waveform {
+    &__wrapper {
+        width: 90%;
+        border: 1.5px solid gray;
+        padding: .5rem 0;
+        background-color: black;
+    }
+    &__container {
+        width: 100%;
+    }
+
+    &__loading {
+        text-align: center;
+        width: 100%;
+        margin: 0;
+    }
+}
