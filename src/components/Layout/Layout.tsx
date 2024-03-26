@@ -19,9 +19,6 @@ export default function Layout({ }: Props) {
     const [leftWavesurfer, setLeftWavesurfer] = useState<WaveSurfer | null>(null)
     const [rightWavesurfer, setRightWavesurfer] = useState<WaveSurfer | null>(null)
 
-
-    const [leftTrackAudio, setLeftTrackAudio] = useState<HTMLAudioElement | null>()
-    const [rightTrackAudio, setRightTrackAudio] = useState<HTMLAudioElement | null>()
     const [playLeft, setPlayLeft] = useState(false)
     const [playRight, setPlayRight] = useState(false)
     const [leftTrackName, setLeftTrackName] = useState('')
@@ -49,7 +46,8 @@ export default function Layout({ }: Props) {
         if (leftWaveformRef && leftWaveformRef.current) {
             const waveSurferInstance = WaveSurfer.create({
                 container: leftWaveformRef.current,
-                height: 50,
+                height: 70,
+                minPxPerSec: 50,
             })
             waveSurferInstance.load(leftTrackPath)
             waveSurferInstance.on('ready', () => {
@@ -69,7 +67,8 @@ export default function Layout({ }: Props) {
         if (rightWaveformRef && rightWaveformRef.current) {
             const waveSurferInstance = WaveSurfer.create({
                 container: rightWaveformRef.current,
-                height: 50,
+                height: 70,
+                minPxPerSec: 50,
             })
             waveSurferInstance.load(leftTrackPath)
             waveSurferInstance.on('ready', () => {
@@ -88,58 +87,44 @@ export default function Layout({ }: Props) {
 
     useEffect(() => {
         document.onkeydown = handleKeyDown
-    }, [leftTrackAudio, playLeft, rightTrackAudio, playRight])
+    }, [leftTrackPath, rightTrackPath, playLeft, playRight])
 
     useEffect(() => {
-        if (!leftTrackAudio) return
+        const calculateVolumeInDecibels = (audioElement: HTMLAudioElement) => {
+            const audioContext = new AudioContext()
+            const analyser = audioContext.createAnalyser()
+            const source = audioContext.createMediaElementSource(audioElement)
+            source.connect(analyser)
+            analyser.connect(audioContext.destination)
 
-        const analyserLeft = leftAudioContext.createAnalyser()
+            // Set analyser properties
+            analyser.fftSize = 256
+            analyser.smoothingTimeConstant = 0.8
 
-        const sourceLeft = leftAudioContext.createMediaElementSource(leftTrackAudio)
-        sourceLeft.connect(analyserLeft)
-        sourceLeft.connect(leftAudioContext.destination)
+            const bufferLength = analyser.frequencyBinCount
+            const dataArray = new Uint8Array(bufferLength)
 
-        analyserLeft.fftSize = 256
-        analyserLeft.smoothingTimeConstant = 0.8
+            // Function to calculate volume in dB
+            const getVolumeInDecibels = () => {
+                analyser.getByteFrequencyData(dataArray)
+                const sum = dataArray.reduce((acc, value) => acc + value, 0)
+                const average = sum / bufferLength
+                const volumeInDecibels = 20 * Math.log10(average / 255)
+                console.log(volumeInDecibels)
+                setDbRight(volumeInDecibels)
+                requestAnimationFrame(getVolumeInDecibels)
+            }
 
-        const dataArrayLeft = new Uint8Array(analyserLeft.frequencyBinCount)
-        function getVolumeInDecibelsLeft() {
-            analyserLeft.getByteFrequencyData(dataArrayLeft)
-            const sum = dataArrayLeft.reduce((acc, value) => acc + value, 0)
-            const average = sum / dataArrayLeft.length
-            const volumeInDecibels = 20 * Math.log10(average / 255)
-
-            setDbLeft(volumeInDecibels)
-            requestAnimationFrame(getVolumeInDecibelsLeft)
+            getVolumeInDecibels()
         }
 
-        getVolumeInDecibelsLeft()
-    }, [leftTrackAudio])
-
-    useEffect(() => {
-        if (!rightTrackAudio) return
-
-        const analyserRight = rightAudioContext.createAnalyser()
-
-        const sourceRight = rightAudioContext.createMediaElementSource(rightTrackAudio)
-        sourceRight.connect(analyserRight)
-        sourceRight.connect(rightAudioContext.destination)
-
-        analyserRight.fftSize = 256
-        analyserRight.smoothingTimeConstant = 0.8
-
-        const dataArrayRight = new Uint8Array(analyserRight.frequencyBinCount)
-        function getVolumeInDecibelsRight() {
-            analyserRight.getByteFrequencyData(dataArrayRight)
-            const sum = dataArrayRight.reduce((acc, value) => acc + value, 0)
-            const average = sum / dataArrayRight.length
-            const volumeInDecibels = 20 * Math.log10(average / 255)
-
-            setDbRight(volumeInDecibels)
-            requestAnimationFrame(getVolumeInDecibelsRight)
+        if (leftWavesurfer) {
+            const audioElement = leftWavesurfer.getMediaElement()
+            if (audioElement) {
+                calculateVolumeInDecibels(audioElement)
+            }
         }
-        getVolumeInDecibelsRight()
-    }, [rightTrackAudio])
+    }, [leftWavesurfer])
 
     useEffect(() => {
         const leftMix = leftVolume + (mixer > 0.5 ? -(leftVolume * (mixer - 0.5) * 2) : 0)
@@ -150,15 +135,12 @@ export default function Layout({ }: Props) {
 
     const loadTrack = (side: string, track: string) => {
         if (track) {
-            const player = new Audio(track)
             if (side === 'left') {
                 stopLeftTrack()
-                setLeftTrackAudio(player)
                 setLeftTrackPath(track)
             }
             if (side === 'right') {
                 stopRightTrack()
-                setRightTrackAudio(player)
                 setRightTrackPath(track)
             }
         }
@@ -224,7 +206,7 @@ export default function Layout({ }: Props) {
             if (leftWaveSurferRef.current.isPlaying()) leftWaveSurferRef.current.pause()
             else leftWaveSurferRef.current.play()
             setPlayLeft(leftWaveSurferRef.current.isPlaying())
-        }
+        } else openFileLoaderLeft()
     }
 
     const playRightTrack = () => {
@@ -232,7 +214,7 @@ export default function Layout({ }: Props) {
             if (rightWaveSurferRef.current.isPlaying()) rightWaveSurferRef.current.pause()
             else rightWaveSurferRef.current.play()
             setPlayRight(rightWaveSurferRef.current.isPlaying())
-        }
+        } else openFileLoaderRight()
     }
 
     const stopLeftTrack = () => {
@@ -279,54 +261,54 @@ export default function Layout({ }: Props) {
     }
 
     const handleEq = (channel: string, type: string, value: number) => {
-        const audioContext = channel === 'left' ? leftAudioContext : rightAudioContext
-        const trackAudio = channel === 'left' ? leftTrackAudio : rightTrackAudio
+        //     const audioContext = channel === 'left' ? leftAudioContext : rightAudioContext
+        //     const trackAudio = channel === 'left' ? leftTrackAudio : rightTrackAudio
 
-        if (trackAudio) {
-            // Get the existing filter node if it already exists, otherwise create a new one
-            const filterNode = channel === 'left' ? leftFilterNode : rightFilterNode
-            const filter = filterNode ? filterNode[type] : audioContext.createBiquadFilter()
+        //     if (trackAudio) {
+        //         // Get the existing filter node if it already exists, otherwise create a new one
+        //         const filterNode = channel === 'left' ? leftFilterNode : rightFilterNode
+        //         const filter = filterNode ? filterNode[type] : audioContext.createBiquadFilter()
 
-            // Update filter parameters
-            filter.type = type as BiquadFilterType
-            filter.frequency.value = 1000 // Adjust as needed
-            filter.gain.value = (value - 50) / 10 // Adjust gain based on slider value
-            filter.Q.value = 1 // Adjust Q factor as needed
+        //         // Update filter parameters
+        //         filter.type = type as BiquadFilterType
+        //         filter.frequency.value = 1000 // Adjust as needed
+        //         filter.gain.value = (value - 50) / 10 // Adjust gain based on slider value
+        //         filter.Q.value = 1 // Adjust Q factor as needed
 
-            // Connect the audio source to the filter, and then to the destination
-            const source = audioContext.createMediaElementSource(trackAudio)
-            source.connect(filter)
-            filter.connect(audioContext.destination)
+        //         // Connect the audio source to the filter, and then to the destination
+        //         const source = audioContext.createMediaElementSource(trackAudio)
+        //         source.connect(filter)
+        //         filter.connect(audioContext.destination)
 
-            // Store the filter node for future reference
-            if (channel === 'left') {
-                setLeftFilterNode({ ...leftFilterNode, [type]: filter })
-            } else {
-                setRightFilterNode({ ...rightFilterNode, [type]: filter })
-            }
+        //         // Store the filter node for future reference
+        //         if (channel === 'left') {
+        //             setLeftFilterNode({ ...leftFilterNode, [type]: filter })
+        //         } else {
+        //             setRightFilterNode({ ...rightFilterNode, [type]: filter })
+        //         }
 
-            // Apply the changes to the playing track
-            applyFilterChanges(channel, type, value)
-        }
+        //         // Apply the changes to the playing track
+        //         applyFilterChanges(channel, type, value)
+        //     }
     }
 
-    const applyFilterChanges = (channel: string, type: string, value: number) => {
-        const audioContext = channel === 'left' ? leftAudioContext : rightAudioContext
-        const filterNode = channel === 'left' ? leftFilterNode : rightFilterNode
+    // const applyFilterChanges = (channel: string, type: string, value: number) => {
+    //     const audioContext = channel === 'left' ? leftAudioContext : rightAudioContext
+    //     const filterNode = channel === 'left' ? leftFilterNode : rightFilterNode
 
-        if (filterNode[type]) {
-            let source
-            if (channel === 'left' && leftTrackAudio) source = audioContext.createMediaElementSource(leftTrackAudio)
-            else if (channel === 'right' && rightTrackAudio) source = audioContext.createMediaElementSource(rightTrackAudio)
-            if (source) {
-                // Disconnect the previous filter node from the destination
-                filterNode[type].disconnect()
-                // Connect the audio source to the updated filter node, and then to the destination
-                source.connect(filterNode[type])
-                filterNode[type].connect(audioContext.destination)
-            }
-        }
-    }
+    //     if (filterNode[type]) {
+    //         let source
+    //         if (channel === 'left' && leftTrackAudio) source = audioContext.createMediaElementSource(leftTrackAudio)
+    //         else if (channel === 'right' && rightTrackAudio) source = audioContext.createMediaElementSource(rightTrackAudio)
+    //         if (source) {
+    //             // Disconnect the previous filter node from the destination
+    //             filterNode[type].disconnect()
+    //             // Connect the audio source to the updated filter node, and then to the destination
+    //             source.connect(filterNode[type])
+    //             filterNode[type].connect(audioContext.destination)
+    //         }
+    //     }
+    // }
 
     return (
         <div className="layout__container" tabIndex={0} style={{ outline: 'none' }}>
