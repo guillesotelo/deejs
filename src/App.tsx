@@ -23,7 +23,6 @@ const App: React.FC = () => {
         <Route exact path="/">
             <Home />
         </Route>
-
         <Route>
             <Home />
         </Route>

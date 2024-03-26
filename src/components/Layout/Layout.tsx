@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useContext, useEffect, useRef, useState } from 'react'
 import JogWheel from '../JogWheel/JogWheel'
 import Button from '../Button/Button'
 import FileInput from '../FileInput/FileInput'
@@ -8,6 +8,7 @@ import Knob from '../Knob/Knob'
 import VolumeBar from '../VolumeBar/VolumeBar'
 import Switch from '../Switch/Switch'
 import WaveSurfer from 'wavesurfer.js'
+import { AppContext } from '../../AppContext'
 
 type Props = {}
 
@@ -29,25 +30,23 @@ export default function Layout({ }: Props) {
     const [pitchLeft, setPitchLeft] = useState(.5)
     const [pitchRight, setPitchRight] = useState(.5)
     const [dbLeft, setDbLeft] = useState(-100)
-    const [dbRught, setDbRight] = useState(-100)
-    const [leftFilterNode, setLeftFilterNode] = useState<{ [key: string]: BiquadFilterNode }>({})
-    const [rightFilterNode, setRightFilterNode] = useState<{ [key: string]: BiquadFilterNode }>({})
-    const [showLayouts, setShowLayouts] = useState(false)
+    const [dbRight, setDbRight] = useState(-100)
 
-    const leftAudioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
-    const rightAudioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
+    const [showLayouts, setShowLayouts] = useState(true)
 
     const leftWaveformRef = useRef<any>()
     const leftWaveSurferRef = useRef<any>({ isPlaying: playLeft })
     const rightWaveformRef = useRef<any>()
     const rightWaveSurferRef = useRef<any>({ isPlaying: playLeft })
 
+    const { isMobile} = useContext(AppContext)
+
     useEffect(() => {
         if (leftWaveformRef && leftWaveformRef.current) {
             const waveSurferInstance = WaveSurfer.create({
                 container: leftWaveformRef.current,
                 height: 70,
-                minPxPerSec: 50,
+                // minPxPerSec: 50,
             })
             waveSurferInstance.load(leftTrackPath)
             waveSurferInstance.on('ready', () => {
@@ -68,9 +67,9 @@ export default function Layout({ }: Props) {
             const waveSurferInstance = WaveSurfer.create({
                 container: rightWaveformRef.current,
                 height: 70,
-                minPxPerSec: 50,
+                // minPxPerSec: 50,
             })
-            waveSurferInstance.load(leftTrackPath)
+            waveSurferInstance.load(rightTrackPath)
             waveSurferInstance.on('ready', () => {
                 setRightLoading(false)
                 rightWaveSurferRef.current = waveSurferInstance
@@ -89,42 +88,71 @@ export default function Layout({ }: Props) {
         document.onkeydown = handleKeyDown
     }, [leftTrackPath, rightTrackPath, playLeft, playRight])
 
-    useEffect(() => {
-        const calculateVolumeInDecibels = (audioElement: HTMLAudioElement) => {
-            const audioContext = new AudioContext()
-            const analyser = audioContext.createAnalyser()
-            const source = audioContext.createMediaElementSource(audioElement)
-            source.connect(analyser)
-            analyser.connect(audioContext.destination)
+    // useEffect(() => {
+    //     const calculateVolumeInDecibels = (audioElement: HTMLAudioElement) => {
+    //         const audioContext = new AudioContext()
+    //         const analyser = audioContext.createAnalyser()
+    //         const source = audioContext.createMediaElementSource(audioElement)
+    //         source.connect(analyser)
+    //         analyser.connect(audioContext.destination)
 
-            // Set analyser properties
-            analyser.fftSize = 256
-            analyser.smoothingTimeConstant = 0.8
+    //         analyser.fftSize = 256
+    //         analyser.smoothingTimeConstant = 0.8
 
-            const bufferLength = analyser.frequencyBinCount
-            const dataArray = new Uint8Array(bufferLength)
+    //         const bufferLength = analyser.frequencyBinCount
+    //         const dataArray = new Uint8Array(bufferLength)
 
-            // Function to calculate volume in dB
-            const getVolumeInDecibels = () => {
-                analyser.getByteFrequencyData(dataArray)
-                const sum = dataArray.reduce((acc, value) => acc + value, 0)
-                const average = sum / bufferLength
-                const volumeInDecibels = 20 * Math.log10(average / 255)
-                console.log(volumeInDecibels)
-                setDbRight(volumeInDecibels)
-                requestAnimationFrame(getVolumeInDecibels)
-            }
+    //         const getVolumeInDecibels = () => {
+    //             analyser.getByteFrequencyData(dataArray)
+    //             const sum = dataArray.reduce((acc, value) => acc + value, 0)
+    //             const average = sum / bufferLength
+    //             const volumeInDecibels = 20 * Math.log10(average / 255)
+    //             setDbLeft(volumeInDecibels)
+    //             requestAnimationFrame(getVolumeInDecibels)
+    //         }
+    //         getVolumeInDecibels()
+    //     }
 
-            getVolumeInDecibels()
-        }
+    //     if (leftWavesurfer) {
+    //         const audioElement = leftWavesurfer.getMediaElement()
+    //         if (audioElement) {
+    //             calculateVolumeInDecibels(audioElement)
+    //         }
+    //     }
+    // }, [leftWavesurfer])
 
-        if (leftWavesurfer) {
-            const audioElement = leftWavesurfer.getMediaElement()
-            if (audioElement) {
-                calculateVolumeInDecibels(audioElement)
-            }
-        }
-    }, [leftWavesurfer])
+    // useEffect(() => {
+    //     const calculateVolumeInDecibels = (audioElement: HTMLAudioElement) => {
+    //         const audioContext = new AudioContext()
+    //         const analyser = audioContext.createAnalyser()
+    //         const source = audioContext.createMediaElementSource(audioElement)
+    //         source.connect(analyser)
+    //         analyser.connect(audioContext.destination)
+
+    //         analyser.fftSize = 256
+    //         analyser.smoothingTimeConstant = 0.8
+
+    //         const bufferLength = analyser.frequencyBinCount
+    //         const dataArray = new Uint8Array(bufferLength)
+
+    //         const getVolumeInDecibels = () => {
+    //             analyser.getByteFrequencyData(dataArray)
+    //             const sum = dataArray.reduce((acc, value) => acc + value, 0)
+    //             const average = sum / bufferLength
+    //             const volumeInDecibels = 20 * Math.log10(average / 255)
+    //             setDbRight(volumeInDecibels)
+    //             requestAnimationFrame(getVolumeInDecibels)
+    //         }
+    //         getVolumeInDecibels()
+    //     }
+
+    //     if (rightWavesurfer && playRight) {
+    //         const audioElement = rightWavesurfer.getMediaElement()
+    //         if (audioElement) {
+    //             calculateVolumeInDecibels(audioElement)
+    //         }
+    //     }
+    // }, [rightWavesurfer])
 
     useEffect(() => {
         const leftMix = leftVolume + (mixer > 0.5 ? -(leftVolume * (mixer - 0.5) * 2) : 0)
@@ -311,7 +339,7 @@ export default function Layout({ }: Props) {
     // }
 
     return (
-        <div className="layout__container" tabIndex={0} style={{ outline: 'none' }}>
+        <div className="layout__container" tabIndex={0} style={{ outline: 'none', transform: isMobile ? 'rotate(180deg)' : '' }}>
             <Switch
                 label='Show Layouts'
                 on='YES'
@@ -379,7 +407,7 @@ export default function Layout({ }: Props) {
                     </div>
                     <div className="layout__center-center">
                         <VolumeBar level={dbLeft} />
-                        <VolumeBar level={dbRught} />
+                        <VolumeBar level={dbRight} />
                     </div>
                     <div className="layout__center-right">
                         <div className="layout__knobs">

@@ -1,11 +1,15 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 
 type Props = {
     level: number
 }
 
 export default function VolumeBar({ level }: Props) {
+    const [currentLevel, setCurrentLevel] = useState(-100)
 
+    useEffect(() => {
+        setCurrentLevel(level)
+    }, [level])
     const getLevel = (level: number) => {
         if (level === -Infinity) return 0
         if (level === Infinity) return 5
@@ -23,27 +27,27 @@ export default function VolumeBar({ level }: Props) {
             <div className="volumebar__vumeter">
                 <div
                     className={
-                        `volumebar__bar ${getLevel(level) > 4 ? 'volumebar__bar-5' : ''}`
+                        `volumebar__bar ${getLevel(currentLevel) > 4 ? 'volumebar__bar-5' : ''}`
                     }>
                 </div>
                 <div
                     className={
-                        `volumebar__bar ${getLevel(level) > 3 ? 'volumebar__bar-4' : ''}`
+                        `volumebar__bar ${getLevel(currentLevel) > 3 ? 'volumebar__bar-4' : ''}`
                     }>
                 </div>
                 <div
                     className={
-                        `volumebar__bar ${getLevel(level) > 2 ? 'volumebar__bar-3' : ''}`
+                        `volumebar__bar ${getLevel(currentLevel) > 2 ? 'volumebar__bar-3' : ''}`
                     }>
                 </div>
                 <div
                     className={
-                        `volumebar__bar ${getLevel(level) > 1 ? 'volumebar__bar-2' : ''}`
+                        `volumebar__bar ${getLevel(currentLevel) > 1 ? 'volumebar__bar-2' : ''}`
                     }>
                 </div>
                 <div
                     className={
-                        `volumebar__bar ${getLevel(level) > 0 ? 'volumebar__bar-1' : ''}`
+                        `volumebar__bar ${getLevel(currentLevel) > 0 ? 'volumebar__bar-1' : ''}`
                     }>
                 </div>
             </div>
