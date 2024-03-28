@@ -116,3 +116,9 @@
         border: 3px solid #00e400;
     }
 }
+
+@keyframes loading-placeholder {
+    to {
+        background-position-x: -200%;
+    }
+}

@@ -10,15 +10,16 @@ export default function VolumeBar({ level }: Props) {
     useEffect(() => {
         setCurrentLevel(level)
     }, [level])
+
     const getLevel = (level: number) => {
         if (level === -Infinity) return 0
         if (level === Infinity) return 5
 
-        if (level > -30 && level <= -13) return 1
-        if (level > -13 && level <= -10) return 2
-        if (level > -10 && level <= -8) return 3
-        if (level > -8 && level <= -6) return 4
-        if (level > -6) return 5
+        if (level > -30 && level <= -10) return 1
+        if (level > -10 && level <= -9) return 2
+        if (level > -9 && level <= -8) return 3
+        if (level > -8 && level <= -7) return 4
+        if (level > -7) return 5
         return 0
     }
 

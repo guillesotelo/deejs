@@ -9,14 +9,15 @@ import VolumeBar from '../VolumeBar/VolumeBar'
 import Switch from '../Switch/Switch'
 import WaveSurfer from 'wavesurfer.js'
 import { AppContext } from '../../AppContext'
+import * as musicMetadata from 'music-metadata-browser';
 
 type Props = {}
 
 export default function Layout({ }: Props) {
     const [leftTrackPath, setLeftTrackPath] = useState('')
     const [rightTrackPath, setRightTrackPath] = useState('')
-    const [leftLoading, setLeftLoading] = useState(false)
-    const [rightLoading, setRightLoading] = useState(false)
+    const [leftLoading, setLeftLoading] = useState(true)
+    const [rightLoading, setRightLoading] = useState(true)
     const [leftWavesurfer, setLeftWavesurfer] = useState<WaveSurfer | null>(null)
     const [rightWavesurfer, setRightWavesurfer] = useState<WaveSurfer | null>(null)
 
@@ -32,27 +33,31 @@ export default function Layout({ }: Props) {
     const [dbLeft, setDbLeft] = useState(-100)
     const [dbRight, setDbRight] = useState(-100)
 
-    const [showLayouts, setShowLayouts] = useState(true)
+    const [showLayouts, setShowLayouts] = useState(false)
 
     const leftWaveformRef = useRef<any>()
     const leftWaveSurferRef = useRef<any>({ isPlaying: playLeft })
     const rightWaveformRef = useRef<any>()
     const rightWaveSurferRef = useRef<any>({ isPlaying: playLeft })
 
-    const { isMobile} = useContext(AppContext)
+    const [leftMetadata, setLeftMetadata] = useState()
+
+    const { isMobile } = useContext(AppContext)
 
     useEffect(() => {
         if (leftWaveformRef && leftWaveformRef.current) {
             const waveSurferInstance = WaveSurfer.create({
                 container: leftWaveformRef.current,
                 height: 70,
-                // minPxPerSec: 50,
+                minPxPerSec: 50,
             })
             waveSurferInstance.load(leftTrackPath)
             waveSurferInstance.on('ready', () => {
                 setLeftLoading(false)
                 leftWaveSurferRef.current = waveSurferInstance
             })
+
+            console.log(getMetadata(leftTrackPath))
 
             setLeftWavesurfer(waveSurferInstance)
 
@@ -67,7 +72,8 @@ export default function Layout({ }: Props) {
             const waveSurferInstance = WaveSurfer.create({
                 container: rightWaveformRef.current,
                 height: 70,
-                // minPxPerSec: 50,
+                minPxPerSec: 50,
+                autoCenter: true
             })
             waveSurferInstance.load(rightTrackPath)
             waveSurferInstance.on('ready', () => {
@@ -88,71 +94,95 @@ export default function Layout({ }: Props) {
         document.onkeydown = handleKeyDown
     }, [leftTrackPath, rightTrackPath, playLeft, playRight])
 
-    // useEffect(() => {
-    //     const calculateVolumeInDecibels = (audioElement: HTMLAudioElement) => {
-    //         const audioContext = new AudioContext()
-    //         const analyser = audioContext.createAnalyser()
-    //         const source = audioContext.createMediaElementSource(audioElement)
-    //         source.connect(analyser)
-    //         analyser.connect(audioContext.destination)
+    useEffect(() => {
+        let animationFrameId: number
+        let prevVolume: number | null = null
 
-    //         analyser.fftSize = 256
-    //         analyser.smoothingTimeConstant = 0.8
+        const calculateVolumeInDecibels = (audioElement: HTMLAudioElement) => {
+            const audioContext = new AudioContext()
+            const analyser = audioContext.createAnalyser()
+            const source = audioContext.createMediaElementSource(audioElement)
+            source.connect(analyser)
+            analyser.connect(audioContext.destination)
 
-    //         const bufferLength = analyser.frequencyBinCount
-    //         const dataArray = new Uint8Array(bufferLength)
+            analyser.fftSize = 256
+            analyser.smoothingTimeConstant = 0.8
 
-    //         const getVolumeInDecibels = () => {
-    //             analyser.getByteFrequencyData(dataArray)
-    //             const sum = dataArray.reduce((acc, value) => acc + value, 0)
-    //             const average = sum / bufferLength
-    //             const volumeInDecibels = 20 * Math.log10(average / 255)
-    //             setDbLeft(volumeInDecibels)
-    //             requestAnimationFrame(getVolumeInDecibels)
-    //         }
-    //         getVolumeInDecibels()
-    //     }
+            const bufferLength = analyser.frequencyBinCount
+            const dataArray = new Uint8Array(bufferLength)
 
-    //     if (leftWavesurfer) {
-    //         const audioElement = leftWavesurfer.getMediaElement()
-    //         if (audioElement) {
-    //             calculateVolumeInDecibels(audioElement)
-    //         }
-    //     }
-    // }, [leftWavesurfer])
+            const getVolumeInDecibels = () => {
+                analyser.getByteFrequencyData(dataArray)
+                const sum = dataArray.reduce((acc, value) => acc + value, 0)
+                const average = sum / bufferLength
+                const volumeInDecibels = 20 * Math.log10(average / 255)
 
-    // useEffect(() => {
-    //     const calculateVolumeInDecibels = (audioElement: HTMLAudioElement) => {
-    //         const audioContext = new AudioContext()
-    //         const analyser = audioContext.createAnalyser()
-    //         const source = audioContext.createMediaElementSource(audioElement)
-    //         source.connect(analyser)
-    //         analyser.connect(audioContext.destination)
+                // Only update state if there's a significant change in volume
+                if (prevVolume === null || Math.abs(volumeInDecibels - prevVolume) >= 1) {
+                    setDbLeft(volumeInDecibels)
+                    prevVolume = volumeInDecibels
+                }
+                animationFrameId = requestAnimationFrame(getVolumeInDecibels)
+            }
+            getVolumeInDecibels()
+        }
 
-    //         analyser.fftSize = 256
-    //         analyser.smoothingTimeConstant = 0.8
+        if (leftWavesurfer) {
+            const audioElement = leftWavesurfer.getMediaElement()
+            if (audioElement) {
+                calculateVolumeInDecibels(audioElement)
+            }
+        }
 
-    //         const bufferLength = analyser.frequencyBinCount
-    //         const dataArray = new Uint8Array(bufferLength)
+        return () => {
+            cancelAnimationFrame(animationFrameId)
+        }
+    }, [leftWavesurfer])
 
-    //         const getVolumeInDecibels = () => {
-    //             analyser.getByteFrequencyData(dataArray)
-    //             const sum = dataArray.reduce((acc, value) => acc + value, 0)
-    //             const average = sum / bufferLength
-    //             const volumeInDecibels = 20 * Math.log10(average / 255)
-    //             setDbRight(volumeInDecibels)
-    //             requestAnimationFrame(getVolumeInDecibels)
-    //         }
-    //         getVolumeInDecibels()
-    //     }
+    useEffect(() => {
+        let animationFrameId: number
+        let prevVolume: number | null = null
 
-    //     if (rightWavesurfer && playRight) {
-    //         const audioElement = rightWavesurfer.getMediaElement()
-    //         if (audioElement) {
-    //             calculateVolumeInDecibels(audioElement)
-    //         }
-    //     }
-    // }, [rightWavesurfer])
+        const calculateVolumeInDecibels = (audioElement: HTMLAudioElement) => {
+            const audioContext = new AudioContext()
+            const analyser = audioContext.createAnalyser()
+            const source = audioContext.createMediaElementSource(audioElement)
+            source.connect(analyser)
+            analyser.connect(audioContext.destination)
+
+            analyser.fftSize = 256
+            analyser.smoothingTimeConstant = 0.8
+
+            const bufferLength = analyser.frequencyBinCount
+            const dataArray = new Uint8Array(bufferLength)
+
+            const getVolumeInDecibels = () => {
+                analyser.getByteFrequencyData(dataArray)
+                const sum = dataArray.reduce((acc, value) => acc + value, 0)
+                const average = sum / bufferLength
+                const volumeInDecibels = 20 * Math.log10(average / 255)
+
+                // Only update state if there's a significant change in volume
+                if (prevVolume === null || Math.abs(volumeInDecibels - prevVolume) >= 1) {
+                    setDbRight(volumeInDecibels)
+                    prevVolume = volumeInDecibels
+                }
+                animationFrameId = requestAnimationFrame(getVolumeInDecibels)
+            }
+            getVolumeInDecibels()
+        }
+
+        if (rightWavesurfer) {
+            const audioElement = rightWavesurfer.getMediaElement()
+            if (audioElement) {
+                calculateVolumeInDecibels(audioElement)
+            }
+        }
+
+        return () => {
+            cancelAnimationFrame(animationFrameId)
+        }
+    }, [rightWavesurfer])
 
     useEffect(() => {
         const leftMix = leftVolume + (mixer > 0.5 ? -(leftVolume * (mixer - 0.5) * 2) : 0)
@@ -160,6 +190,15 @@ export default function Layout({ }: Props) {
         leftWavesurfer?.setVolume(leftMix)
         rightWavesurfer?.setVolume(rightMix)
     }, [leftVolume, rightVolume, mixer])
+
+    const getMetadata = async (audioTrackUrl: string) => {
+        try {
+            const metadata = await musicMetadata.fetchFromUrl(audioTrackUrl)
+            return metadata || {}
+        } catch (error) {
+            console.error(error)
+        }
+    }
 
     const loadTrack = (side: string, track: string) => {
         if (track) {
@@ -339,21 +378,36 @@ export default function Layout({ }: Props) {
     // }
 
     return (
-        <div className="layout__container" tabIndex={0} style={{ outline: 'none', transform: isMobile ? 'rotate(180deg)' : '' }}>
+        <div className="layout__container" tabIndex={0} style={{ outline: 'none', transform: isMobile ? 'rotate(90deg)' : '' }}>
             <Switch
                 label='Show Layouts'
                 on='YES'
                 off='NO'
                 value={showLayouts}
                 setValue={setShowLayouts}
-                style={{ position: 'absolute', top: '1rem', right: '1rem' }}
+                style={{ position: 'absolute', top: '1rem', right: 'calc(50%-3rem)', zIndex: 5 }}
             />
             <div className="layout__left">
+
                 <div className="waveform__wrapper">
-                    {leftTrackPath && leftLoading ? <p className="waveform__loading">Loading...</p> : ''}
-                    <div ref={leftWaveformRef} className='waveform__container' />
+                    {leftTrackPath && leftLoading ?
+                        <div className="waveform__placeholder">
+                            <p className="waveform__loading">Loading waveform...</p>
+                        </div>
+                        :
+                        <div className='waveform__row'>
+                            <div className="waveform__info">
+                                <p className="waveform__track-number">1</p>
+                                <div className="waveform__track-name">
+                                    <p className="waveform__track-title">{leftTrackName || 'No track loaded'}</p>
+                                    <p className="waveform__track-subtitle">Subtitle</p>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                    <div ref={leftWaveformRef} className='waveform__container' style={{ display: leftTrackPath && leftLoading ? 'none' : '' }} />
                 </div>
-                <h2 className="layout__track-name">{leftTrackName || 'No track loaded'}</h2>
+
                 <FileInput
                     setFile={file => loadTrack('left', file)}
                     setFileName={setLeftTrackName}
@@ -371,6 +425,7 @@ export default function Layout({ }: Props) {
                             label='CUE'
                             handleClick={stopLeftTrack}
                             textColor='orange'
+                            disabled={Boolean(leftTrackPath && leftLoading)}
                         />
                         <Button
                             label={playLeft ? 'Pause' : 'Play'}
@@ -378,6 +433,7 @@ export default function Layout({ }: Props) {
                             textColor='#25bc2d'
                             svg={PlayPause}
                             animate={playLeft}
+                            disabled={Boolean(leftTrackPath && leftLoading)}
                         />
                     </div>
                     <div className="layout__player-pitch">
@@ -430,11 +486,16 @@ export default function Layout({ }: Props) {
                 </div>
             </div>
             <div className="layout__right">
+
                 <div className="waveform__wrapper">
-                    {rightTrackPath && rightLoading ? <p className="waveform__loading">Loading...</p> : ''}
+                    {rightTrackPath && rightLoading ?
+                        <div className="waveform__placeholder">
+                            <p className="waveform__loading">Loading waveform...</p>
+                        </div>
+                        : ''}
                     <div ref={rightWaveformRef} className='waveform__container' />
                 </div>
-                <h2 className="layout__track-name">{rightTrackName || 'No track loaded'}</h2>
+
                 <FileInput
                     setFile={file => loadTrack('right', file)}
                     setFileName={setRightTrackName}
@@ -452,6 +513,7 @@ export default function Layout({ }: Props) {
                             label='CUE'
                             handleClick={stopRightTrack}
                             textColor='orange'
+                            disabled={Boolean(rightTrackPath && rightLoading)}
                         />
                         <Button
                             label={playRight ? 'Pause' : 'Play'}
@@ -459,6 +521,7 @@ export default function Layout({ }: Props) {
                             textColor='#25bc2d'
                             svg={PlayPause}
                             animate={playRight}
+                            disabled={Boolean(rightTrackPath && rightLoading)}
                         />
                     </div>
                     <div className="layout__player-pitch">

@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useState } from 'react'
-import PropTypes from 'prop-types'
 import WaveSurfer from 'wavesurfer.js'
 
 type Props = {
@@ -101,7 +100,7 @@ const Waveform = ({
     }, [stop])
 
     return <div className="waveform__wrapper">
-        {audioUrl && loading ? <p className="waveform__loading">Loading...</p> : ''}
+        <p className="waveform__loading">Loading...</p> 
         <div ref={containerRef} style={style} className='waveform__container' />
         <button
             onClick={() => {
@@ -113,17 +112,6 @@ const Waveform = ({
             {isPlaying ? 'pause' : 'play'}
         </button>
     </div>
-}
-
-Waveform.propTypes = {
-    audioUrl: PropTypes.string.isRequired,
-    volume: PropTypes.number,
-    setVolume: PropTypes.func,
-    pitch: PropTypes.number,
-    setPitch: PropTypes.func,
-    play: PropTypes.func,
-    pause: PropTypes.func,
-    stop: PropTypes.func,
 }
 
 export default Waveform
