@@ -10,7 +10,8 @@
         justify-content: center;
         background-color: rgb(35, 35, 35);
         border-radius: 50%;
-        border: 3px solid rgb(99, 99, 99);
+        border: 5px solid rgb(126, 126, 126);
+        box-shadow: 0px 5px 5px #000000;
 
         &:hover {
             filter: brightness(110%);
@@ -18,29 +19,37 @@
     }
 
     &__wheel {
-        width: 6vw;
-        height: 6vw;
+        width: 5vw;
+        height: 5vw;
         transform: rotate(20deg);
+        filter: invert(86%) sepia(0%) saturate(0%) hue-rotate(183deg) brightness(88%) contrast(103%);
 
         &--playing {
-            width: 6vw;
-            height: 6vw;
+            width: 5vw;
+            height: 5vw;
             transform: rotate(20deg);
+            filter: invert(86%) sepia(0%) saturate(0%) hue-rotate(183deg) brightness(88%) contrast(103%);
             animation: playwheel 5s linear infinite;
         }
 
         &-wrapper {
             background-color: rgb(0, 0, 0);
             border-radius: 50%;
-            padding: 1rem;
-            border: 3px solid rgb(66, 66, 66);
+            padding: 2rem;
+            // border: 3px solid rgb(158, 158, 158);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
         }
 
         &-ring {
-            background-color: rgb(99, 99, 99);
+            background-color: rgb(44, 44, 44);
             border-radius: 50%;
             padding: 5rem;
-            border: 3px solid rgb(0, 0, 0);
+            border: 5px solid rgb(0, 0, 0);
+            box-shadow: 0px 5px 40px #000000;
+
         }
     }
 }

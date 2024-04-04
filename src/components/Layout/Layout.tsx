@@ -53,6 +53,11 @@ export default function Layout({ }: Props) {
     console.log('paths', paths)
 
     useEffect(() => {
+        if (leftElapsed >= leftDuration) stopLeftTrack()
+        if (rightElapsed >= rightDuration) stopRightTrack()
+    }, [leftElapsed, rightElapsed])
+
+    useEffect(() => {
         if (leftWaveformRef && leftWaveformRef.current) {
             const waveSurferInstance = WaveSurfer.create({
                 container: leftWaveformRef.current,

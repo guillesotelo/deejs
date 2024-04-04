@@ -1,5 +1,5 @@
 import React from 'react'
-import Wheel from '../../assets/icons/wheel.svg'
+import Wheel from '../../assets/icons/wheel_2.svg'
 
 type Props = {
   play: boolean
