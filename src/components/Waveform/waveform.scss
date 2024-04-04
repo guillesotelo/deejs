@@ -55,8 +55,9 @@
     &__track {
 
         &-number {
-            margin: .3rem;
-            padding: 0 .5rem;
+            margin: 0 .4rem 0 0;
+            padding: 0 .7rem;
+            font-size: 1.2rem;
             border: 1px solid rgb(119, 179, 199);
             border-top-width: 5px;
         }
@@ -71,19 +72,20 @@
 
         &-title {
             margin: 0;
-            font-size: .8rem;
+            font-size: .9rem;
             overflow: hidden;
             white-space: nowrap;
             text-overflow: ellipsis;
             width: 100%;
         }
 
-        &-subtitle {
+        &-artist {
             margin: 0;
             font-size: .8rem;
             overflow: hidden;
             white-space: nowrap;
             text-overflow: ellipsis;
+            opacity: .8;
         }
 
 

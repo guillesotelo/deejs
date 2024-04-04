@@ -28,7 +28,7 @@ export default function Layout({ }: Props) {
     const [leftBpn, setLeftBpn] = useState('0.00')
     const leftWaveformRef = useRef<any>()
     const leftWaveSurferRef = useRef<any>({ isPlaying: playLeft })
-    const [leftMeta, setLeftMeta] = useState('')
+    const [leftMeta, setLeftMeta] = useState<{ [key: string]: any }>({})
 
     const [rightTrackPath, setRightTrackPath] = useState('')
     const [rightLoading, setRightLoading] = useState(true)
@@ -43,13 +43,14 @@ export default function Layout({ }: Props) {
     const [rightBpn, setRightBpn] = useState('0.00')
     const rightWaveformRef = useRef<any>()
     const rightWaveSurferRef = useRef<any>({ isPlaying: playLeft })
+    const [rightMeta, setRightMeta] = useState<{ [key: string]: any }>({})
 
     const [mixer, setMixer] = useState(.5)
     const [showLayouts, setShowLayouts] = useState(true)
     const [paths, setPaths] = useState<string[]>(JSON.parse(localStorage.getItem('paths') || '[]'))
     const { isMobile } = useContext(AppContext)
 
-    console.log('leftMeta', leftMeta)
+    console.log('paths', paths)
 
     useEffect(() => {
         if (leftWaveformRef && leftWaveformRef.current) {
@@ -75,6 +76,7 @@ export default function Layout({ }: Props) {
         }
 
         if (leftTrackPath && !paths.includes(leftTrackPath)) {
+            console.log('ye')
             const newPaths = paths.concat(leftTrackPath)
             setPaths(newPaths)
             localStorage.setItem('paths', JSON.stringify(newPaths))
@@ -401,6 +403,15 @@ export default function Layout({ }: Props) {
     //     }
     // }
 
+    const getTrackMeta = (tag: string, deck: string) => {
+        if (deck === 'left' && leftMeta.common) {
+            return String(leftMeta.common[tag])
+        }
+        if (deck === 'right' && rightMeta.common) {
+            return String(rightMeta.common[tag])
+        }
+    }
+
     return (
         <div className="layout__container" tabIndex={0} style={{ outline: 'none', transform: isMobile ? 'rotate(90deg)' : '' }}>
             <div className="layout__left">
@@ -415,8 +426,14 @@ export default function Layout({ }: Props) {
                             <div className="waveform__info" style={{ width: '65%' }}>
                                 <p className="waveform__track-number">1</p>
                                 <div className="waveform__track-name">
-                                    <p className="waveform__track-title">{leftTrackName || 'No track loaded'}</p>
-                                    {/* <p className="waveform__track-subtitle">Subtitle</p> */}
+                                    {leftTrackName ?
+                                        <>
+                                            <p className="waveform__track-title">{getTrackMeta('title', 'left')}</p>
+                                            <p className="waveform__track-artist">{getTrackMeta('artist', 'left')}</p>
+                                        </>
+                                        :
+                                        <p className="waveform__track-title">No track loaded</p>
+                                    }
                                 </div>
                             </div>
                             <div className="waveform__info">
@@ -453,6 +470,7 @@ export default function Layout({ }: Props) {
                             handleClick={stopLeftTrack}
                             textColor='orange'
                             disabled={Boolean(leftTrackPath && leftLoading)}
+                            loaded={Boolean(leftTrackPath)}
                         />
                         <Button
                             label={playLeft ? 'Pause' : 'Play'}
@@ -538,8 +556,14 @@ export default function Layout({ }: Props) {
                             <div className="waveform__info" style={{ width: '65%' }}>
                                 <p className="waveform__track-number">1</p>
                                 <div className="waveform__track-name">
-                                    <p className="waveform__track-title">{rightTrackName || 'No track loaded'}</p>
-                                    {/* <p className="waveform__track-subtitle">Subtitle</p> */}
+                                    {rightTrackName ?
+                                        <>
+                                            <p className="waveform__track-title">{getTrackMeta('title', 'right')}</p>
+                                            <p className="waveform__track-artist">{getTrackMeta('artist', 'right')}</p>
+                                        </>
+                                        :
+                                        <p className="waveform__track-title">No track loaded</p>
+                                    }
                                 </div>
                             </div>
                             <div className="waveform__info">
@@ -561,6 +585,7 @@ export default function Layout({ }: Props) {
                     setFile={file => loadTrack('right', file)}
                     setFileName={setRightTrackName}
                     showLayouts={showLayouts}
+                    setMeta={setRightMeta}
                     inputId='right-track-input'>
                     {showLayouts ?
                         <JogWheel
@@ -575,6 +600,7 @@ export default function Layout({ }: Props) {
                             handleClick={stopRightTrack}
                             textColor='orange'
                             disabled={Boolean(rightTrackPath && rightLoading)}
+                            loaded={Boolean(rightTrackPath)}
                         />
                         <Button
                             label={playRight ? 'Pause' : 'Play'}

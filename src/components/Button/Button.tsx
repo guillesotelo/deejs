@@ -11,9 +11,10 @@ type Props = {
     style?: { [key: string | number]: any }
     pause?: boolean
     playing?: boolean
+    loaded?: boolean
 }
 
-export default function Button({ label, handleClick, className, bgColor, textColor, disabled, svg, style, playing, pause }: Props) {
+export default function Button({ label, handleClick, className, bgColor, textColor, disabled, svg, style, playing, pause, loaded }: Props) {
     return svg ?
         <button
             className="button__default"
@@ -25,7 +26,7 @@ export default function Button({ label, handleClick, className, bgColor, textCol
                 opacity: disabled ? '.3' : '',
                 cursor: disabled ? 'not-allowed' : '',
                 animation: pause ? 'playbutton 1.7s infinite' : '',
-                border: playing ? '5px solid #00e400' : ''
+                border: playing ? '5px solid #00e400' : loaded ? '5px solid orange' : ''
             }}
         >
             <img
@@ -48,7 +49,7 @@ export default function Button({ label, handleClick, className, bgColor, textCol
                 opacity: disabled ? '.3' : '',
                 cursor: disabled ? 'not-allowed' : '',
                 animation: pause ? 'playbutton 1.7s infinite' : '',
-                border: playing ? '5px solid #00e400' : ''
+                border: playing ? '5px solid #00e400' : loaded ? '5px solid orange' : ''
             }}
             disabled={disabled}
         >

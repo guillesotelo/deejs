@@ -1,10 +1,6 @@
 import React, { SyntheticEvent, useState } from 'react'
 import * as mm from 'music-metadata-browser'
-import { Buffer } from "buffer";
 
-if (typeof window.Buffer !== "undefined" && typeof Buffer === "undefined") {
-  window.Buffer = Buffer;
-}
 type Props = {
     setFile: (data: any) => void
     setMeta?: (data: any) => void
@@ -31,7 +27,6 @@ export default function FileInput({ setFile, setFileName, inputId, children, sho
                 setFileName(files[0].name.split('.')[0])
 
                 const objectURL = URL.createObjectURL(files[0])
-                console.log('objectURL', objectURL)
                 getMetadata(objectURL)
             }
             reader.readAsDataURL(files[0])
@@ -41,8 +36,7 @@ export default function FileInput({ setFile, setFileName, inputId, children, sho
     const getMetadata = async (objectURL: string) => {
         try {
             const metaData = await mm.fetchFromUrl(objectURL)
-            console.log('metaData', metaData)
-            if (setMeta) setMeta([metaData])
+            if (setMeta) setMeta(metaData)
         } catch (error) {
             console.error(error)
         }

@@ -13,6 +13,7 @@ export default function JogWheel({ play, loaded }: Props) {
         src={Wheel}
         alt="Wheel"
         className={`jogwheel__svg${play ? '--playing' : ''}`}
+        draggable={false}
         style={{
           filter: loaded ?
             'invert(12%) sepia(45%) saturate(2849%) hue-rotate(172deg) brightness(91%) contrast(103%)'
