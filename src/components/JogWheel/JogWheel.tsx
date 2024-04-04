@@ -8,18 +8,21 @@ type Props = {
 
 export default function JogWheel({ play, loaded }: Props) {
   return (
-    <div className="jogwheel__container">
-      <img
-        src={Wheel}
-        alt="Wheel"
-        className={`jogwheel__svg${play ? '--playing' : ''}`}
-        draggable={false}
+    <div className="jogwheel__container" style={{ border: loaded ? '3px solid #1d4d77' : '' }}>
+      <div className="jogwheel__wheel-ring"
         style={{
-          filter: loaded ?
-            'invert(12%) sepia(45%) saturate(2849%) hue-rotate(172deg) brightness(91%) contrast(103%)'
-            : ''
-        }}
-      />
+          border: loaded ? '3px solid #1d4d77' : '',
+          backgroundColor: loaded ? '#344350' : ''
+        }}>
+        <div className="jogwheel__wheel-wrapper">
+          <img
+            src={Wheel}
+            alt="Wheel"
+            className={`jogwheel__wheel${play ? '--playing' : ''}`}
+            draggable={false}
+          />
+        </div>
+      </div>
     </div>
   )
 }

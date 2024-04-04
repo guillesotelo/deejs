@@ -3,18 +3,44 @@
         // height: 20rem;
         width: 20vw;
         height: 20vw;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background-color: rgb(35, 35, 35);
+        border-radius: 50%;
+        border: 3px solid rgb(99, 99, 99);
+
+        &:hover {
+            filter: brightness(110%);
+        }
     }
 
-    &__svg {
-        // height: 20rem;
-        width: 20vw;
-        height: 20vw;
+    &__wheel {
+        width: 6vw;
+        height: 6vw;
+        transform: rotate(20deg);
 
         &--playing {
-            height: 20vw;
-            width: 20vw;
-            // height: 20rem;
-            animation: playwheel 7s linear infinite;
+            width: 6vw;
+            height: 6vw;
+            transform: rotate(20deg);
+            animation: playwheel 5s linear infinite;
+        }
+
+        &-wrapper {
+            background-color: rgb(0, 0, 0);
+            border-radius: 50%;
+            padding: 1rem;
+            border: 3px solid rgb(66, 66, 66);
+        }
+
+        &-ring {
+            background-color: rgb(99, 99, 99);
+            border-radius: 50%;
+            padding: 5rem;
+            border: 3px solid rgb(0, 0, 0);
         }
     }
 }
