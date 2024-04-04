@@ -9,10 +9,11 @@ type Props = {
     disabled?: boolean
     svg?: string
     style?: { [key: string | number]: any }
-    animate?: boolean
+    pause?: boolean
+    playing?: boolean
 }
 
-export default function Button({ label, handleClick, className, bgColor, textColor, disabled, svg, style, animate }: Props) {
+export default function Button({ label, handleClick, className, bgColor, textColor, disabled, svg, style, playing, pause }: Props) {
     return svg ?
         <button
             className="button__default"
@@ -23,7 +24,8 @@ export default function Button({ label, handleClick, className, bgColor, textCol
                 color: textColor || '',
                 opacity: disabled ? '.3' : '',
                 cursor: disabled ? 'not-allowed' : '',
-                animation: animate ? 'playbutton 1.2s infinite' : '',
+                animation: pause ? 'playbutton 1.7s infinite' : '',
+                border: playing ? '5px solid #00e400' : ''
             }}
         >
             <img
@@ -31,7 +33,7 @@ export default function Button({ label, handleClick, className, bgColor, textCol
                 alt="Button"
                 className='button__svg'
                 style={{
-                    filter: animate ? 'invert(58%) sepia(41%) saturate(6140%) hue-rotate(86deg) brightness(114%) contrast(119%)' : ''
+                    filter: pause || playing ? 'invert(58%) sepia(41%) saturate(6140%) hue-rotate(86deg) brightness(114%) contrast(119%)' : ''
                 }}
             />
         </button>
@@ -45,7 +47,8 @@ export default function Button({ label, handleClick, className, bgColor, textCol
                 color: textColor || '',
                 opacity: disabled ? '.3' : '',
                 cursor: disabled ? 'not-allowed' : '',
-                animation: animate ? 'playbutton 1.2s infinite' : '',
+                animation: pause ? 'playbutton 1.7s infinite' : '',
+                border: playing ? '5px solid #00e400' : ''
             }}
             disabled={disabled}
         >

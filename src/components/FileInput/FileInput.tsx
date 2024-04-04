@@ -1,14 +1,20 @@
 import React, { SyntheticEvent, useState } from 'react'
+import * as mm from 'music-metadata-browser'
+import { Buffer } from "buffer";
 
+if (typeof window.Buffer !== "undefined" && typeof Buffer === "undefined") {
+  window.Buffer = Buffer;
+}
 type Props = {
     setFile: (data: any) => void
+    setMeta?: (data: any) => void
     setFileName: (name: string) => void
     children: React.ReactNode
     inputId: string
     showLayouts?: boolean
 }
 
-export default function FileInput({ setFile, setFileName, inputId, children, showLayouts }: Props) {
+export default function FileInput({ setFile, setFileName, inputId, children, showLayouts, setMeta }: Props) {
     const [dragging, setDragging] = useState(false)
 
     const loadFile = (e: SyntheticEvent) => {
@@ -23,8 +29,22 @@ export default function FileInput({ setFile, setFileName, inputId, children, sho
                 const fileContent = event?.target?.result
                 setFile(fileContent)
                 setFileName(files[0].name.split('.')[0])
+
+                const objectURL = URL.createObjectURL(files[0])
+                console.log('objectURL', objectURL)
+                getMetadata(objectURL)
             }
             reader.readAsDataURL(files[0])
+        }
+    }
+
+    const getMetadata = async (objectURL: string) => {
+        try {
+            const metaData = await mm.fetchFromUrl(objectURL)
+            console.log('metaData', metaData)
+            if (setMeta) setMeta([metaData])
+        } catch (error) {
+            console.error(error)
         }
     }
 

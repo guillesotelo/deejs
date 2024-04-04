@@ -9,40 +9,47 @@ import VolumeBar from '../VolumeBar/VolumeBar'
 import Switch from '../Switch/Switch'
 import WaveSurfer from 'wavesurfer.js'
 import { AppContext } from '../../AppContext'
-import * as musicMetadata from 'music-metadata-browser';
+import { formatTime } from '../../helpers'
+import { analyze } from 'web-audio-beat-detector'
 
 type Props = {}
 
 export default function Layout({ }: Props) {
     const [leftTrackPath, setLeftTrackPath] = useState('')
-    const [rightTrackPath, setRightTrackPath] = useState('')
     const [leftLoading, setLeftLoading] = useState(true)
-    const [rightLoading, setRightLoading] = useState(true)
     const [leftWavesurfer, setLeftWavesurfer] = useState<WaveSurfer | null>(null)
-    const [rightWavesurfer, setRightWavesurfer] = useState<WaveSurfer | null>(null)
-
     const [playLeft, setPlayLeft] = useState(false)
-    const [playRight, setPlayRight] = useState(false)
     const [leftTrackName, setLeftTrackName] = useState('')
-    const [rightTrackName, setRightTrackName] = useState('')
     const [leftVolume, setLeftVolume] = useState(0.8)
-    const [rightVolume, setRightVolume] = useState(0.8)
-    const [mixer, setMixer] = useState(.5)
     const [pitchLeft, setPitchLeft] = useState(.5)
-    const [pitchRight, setPitchRight] = useState(.5)
     const [dbLeft, setDbLeft] = useState(-100)
-    const [dbRight, setDbRight] = useState(-100)
-
-    const [showLayouts, setShowLayouts] = useState(false)
-
+    const [leftElapsed, setLeftElapsed] = useState('00:00')
+    const [leftDuration, setLeftDuration] = useState('00:00')
+    const [leftBpn, setLeftBpn] = useState('0.00')
     const leftWaveformRef = useRef<any>()
     const leftWaveSurferRef = useRef<any>({ isPlaying: playLeft })
+    const [leftMeta, setLeftMeta] = useState('')
+
+    const [rightTrackPath, setRightTrackPath] = useState('')
+    const [rightLoading, setRightLoading] = useState(true)
+    const [rightWavesurfer, setRightWavesurfer] = useState<WaveSurfer | null>(null)
+    const [playRight, setPlayRight] = useState(false)
+    const [rightTrackName, setRightTrackName] = useState('')
+    const [rightVolume, setRightVolume] = useState(0.8)
+    const [pitchRight, setPitchRight] = useState(.5)
+    const [dbRight, setDbRight] = useState(-100)
+    const [rightElapsed, setRightElapsed] = useState('00:00')
+    const [rightDuration, setRightDuration] = useState('00:00')
+    const [rightBpn, setRightBpn] = useState('0.00')
     const rightWaveformRef = useRef<any>()
     const rightWaveSurferRef = useRef<any>({ isPlaying: playLeft })
 
-    const [leftMetadata, setLeftMetadata] = useState()
-
+    const [mixer, setMixer] = useState(.5)
+    const [showLayouts, setShowLayouts] = useState(true)
+    const [paths, setPaths] = useState<string[]>(JSON.parse(localStorage.getItem('paths') || '[]'))
     const { isMobile } = useContext(AppContext)
+
+    console.log('leftMeta', leftMeta)
 
     useEffect(() => {
         if (leftWaveformRef && leftWaveformRef.current) {
@@ -50,20 +57,27 @@ export default function Layout({ }: Props) {
                 container: leftWaveformRef.current,
                 height: 70,
                 minPxPerSec: 50,
+                normalize: true
             })
             waveSurferInstance.load(leftTrackPath)
             waveSurferInstance.on('ready', () => {
                 setLeftLoading(false)
                 leftWaveSurferRef.current = waveSurferInstance
+                setLeftDuration(formatTime(waveSurferInstance.getDuration()))
+                getTempo(waveSurferInstance.getDecodedData(), setLeftBpn)
             })
-
-            console.log(getMetadata(leftTrackPath))
 
             setLeftWavesurfer(waveSurferInstance)
 
             return () => {
                 waveSurferInstance.destroy()
             }
+        }
+
+        if (leftTrackPath && !paths.includes(leftTrackPath)) {
+            const newPaths = paths.concat(leftTrackPath)
+            setPaths(newPaths)
+            localStorage.setItem('paths', JSON.stringify(newPaths))
         }
     }, [leftTrackPath])
 
@@ -73,12 +87,14 @@ export default function Layout({ }: Props) {
                 container: rightWaveformRef.current,
                 height: 70,
                 minPxPerSec: 50,
-                autoCenter: true
+                normalize: true
             })
             waveSurferInstance.load(rightTrackPath)
             waveSurferInstance.on('ready', () => {
                 setRightLoading(false)
                 rightWaveSurferRef.current = waveSurferInstance
+                setRightDuration(formatTime(waveSurferInstance.getDuration()))
+                getTempo(waveSurferInstance.getDecodedData(), setRightBpn)
             })
 
             setRightWavesurfer(waveSurferInstance)
@@ -86,6 +102,12 @@ export default function Layout({ }: Props) {
             return () => {
                 waveSurferInstance.destroy()
             }
+        }
+
+        if (rightTrackPath && !paths.includes(rightTrackPath)) {
+            const newPaths = paths.concat(rightTrackPath)
+            setPaths(newPaths)
+            localStorage.setItem('paths', JSON.stringify(newPaths))
         }
     }, [rightTrackPath])
 
@@ -121,6 +143,8 @@ export default function Layout({ }: Props) {
                 if (prevVolume === null || Math.abs(volumeInDecibels - prevVolume) >= 1) {
                     setDbLeft(volumeInDecibels)
                     prevVolume = volumeInDecibels
+
+                    if (leftWavesurfer) setLeftElapsed(formatTime(leftWavesurfer.getCurrentTime()))
                 }
                 animationFrameId = requestAnimationFrame(getVolumeInDecibels)
             }
@@ -166,6 +190,8 @@ export default function Layout({ }: Props) {
                 if (prevVolume === null || Math.abs(volumeInDecibels - prevVolume) >= 1) {
                     setDbRight(volumeInDecibels)
                     prevVolume = volumeInDecibels
+
+                    if (rightWavesurfer) setRightElapsed(formatTime(rightWavesurfer.getCurrentTime()))
                 }
                 animationFrameId = requestAnimationFrame(getVolumeInDecibels)
             }
@@ -191,12 +217,10 @@ export default function Layout({ }: Props) {
         rightWavesurfer?.setVolume(rightMix)
     }, [leftVolume, rightVolume, mixer])
 
-    const getMetadata = async (audioTrackUrl: string) => {
-        try {
-            const metadata = await musicMetadata.fetchFromUrl(audioTrackUrl)
-            return metadata || {}
-        } catch (error) {
-            console.error(error)
+    const getTempo = async (audioBuffer: AudioBuffer | null, setTempo: (value: string) => void) => {
+        if (audioBuffer) {
+            const tempo = await analyze(audioBuffer)
+            if (tempo) setTempo(tempo.toFixed(2))
         }
     }
 
@@ -379,14 +403,6 @@ export default function Layout({ }: Props) {
 
     return (
         <div className="layout__container" tabIndex={0} style={{ outline: 'none', transform: isMobile ? 'rotate(90deg)' : '' }}>
-            <Switch
-                label='Show Layouts'
-                on='YES'
-                off='NO'
-                value={showLayouts}
-                setValue={setShowLayouts}
-                style={{ position: 'absolute', top: '1rem', right: 'calc(50%-3rem)', zIndex: 5 }}
-            />
             <div className="layout__left">
 
                 <div className="waveform__wrapper">
@@ -396,11 +412,21 @@ export default function Layout({ }: Props) {
                         </div>
                         :
                         <div className='waveform__row'>
-                            <div className="waveform__info">
+                            <div className="waveform__info" style={{ width: '65%' }}>
                                 <p className="waveform__track-number">1</p>
                                 <div className="waveform__track-name">
                                     <p className="waveform__track-title">{leftTrackName || 'No track loaded'}</p>
-                                    <p className="waveform__track-subtitle">Subtitle</p>
+                                    {/* <p className="waveform__track-subtitle">Subtitle</p> */}
+                                </div>
+                            </div>
+                            <div className="waveform__info">
+                                <p className="waveform__track-elapsed">{leftElapsed}</p>
+                                <p className="waveform__track-duration">{leftDuration}</p>
+                            </div>
+                            <div className="waveform__info">
+                                <div className="waveform__track-bpn">
+                                    <p className="waveform__track-bpn-number">{leftBpn.split('.')[0]}.<span style={{ fontSize: '.9rem' }}>{leftBpn.split('.')[1]}</span></p>
+                                    <p className="waveform__track-bpn-label">BPN</p>
                                 </div>
                             </div>
                         </div>
@@ -412,6 +438,7 @@ export default function Layout({ }: Props) {
                     setFile={file => loadTrack('left', file)}
                     setFileName={setLeftTrackName}
                     showLayouts={showLayouts}
+                    setMeta={setLeftMeta}
                     inputId='left-track-input'>
                     {showLayouts ?
                         <JogWheel
@@ -432,7 +459,8 @@ export default function Layout({ }: Props) {
                             handleClick={playLeftTrack}
                             textColor='#25bc2d'
                             svg={PlayPause}
-                            animate={playLeft}
+                            playing={Boolean(leftTrackPath && playLeft)}
+                            pause={Boolean(leftTrackPath && !playLeft)}
                             disabled={Boolean(leftTrackPath && leftLoading)}
                         />
                     </div>
@@ -448,6 +476,19 @@ export default function Layout({ }: Props) {
                 </div>
             </div>
             <div className="layout__center">
+                <Switch
+                    label='Show Layouts'
+                    on='YES'
+                    off='NO'
+                    value={showLayouts}
+                    setValue={setShowLayouts}
+                    style={{ transform: 'scale(.7)', marginBottom: '-4rem' }}
+                />
+                <div className="layout__center-screen">
+                    <div className="layout__center-screen-table">
+
+                    </div>
+                </div>
                 <div className="layout__center-row">
                     <div className="layout__center-left">
                         <div className="layout__knobs">
@@ -492,8 +533,28 @@ export default function Layout({ }: Props) {
                         <div className="waveform__placeholder">
                             <p className="waveform__loading">Loading waveform...</p>
                         </div>
-                        : ''}
-                    <div ref={rightWaveformRef} className='waveform__container' />
+                        :
+                        <div className='waveform__row'>
+                            <div className="waveform__info" style={{ width: '65%' }}>
+                                <p className="waveform__track-number">1</p>
+                                <div className="waveform__track-name">
+                                    <p className="waveform__track-title">{rightTrackName || 'No track loaded'}</p>
+                                    {/* <p className="waveform__track-subtitle">Subtitle</p> */}
+                                </div>
+                            </div>
+                            <div className="waveform__info">
+                                <p className="waveform__track-elapsed">{rightElapsed}</p>
+                                <p className="waveform__track-duration">{rightDuration}</p>
+                            </div>
+                            <div className="waveform__info">
+                                <div className="waveform__track-bpn">
+                                    <p className="waveform__track-bpn-number">{rightBpn.split('.')[0]}.<span style={{ fontSize: '.9rem' }}>{rightBpn.split('.')[1]}</span></p>
+                                    <p className="waveform__track-bpn-label">BPN</p>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                    <div ref={rightWaveformRef} className='waveform__container' style={{ display: rightTrackPath && rightLoading ? 'none' : '' }} />
                 </div>
 
                 <FileInput
@@ -520,7 +581,8 @@ export default function Layout({ }: Props) {
                             handleClick={playRightTrack}
                             textColor='#25bc2d'
                             svg={PlayPause}
-                            animate={playRight}
+                            playing={Boolean(rightTrackPath && playRight)}
+                            pause={Boolean(rightTrackPath && !playRight)}
                             disabled={Boolean(rightTrackPath && rightLoading)}
                         />
                     </div>

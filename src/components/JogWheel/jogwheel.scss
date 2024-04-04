@@ -1,18 +1,18 @@
 .jogwheel {
     &__container {
         // height: 20rem;
-        width: 25vw;
-        height: 25vw;
+        width: 20vw;
+        height: 20vw;
     }
 
     &__svg {
         // height: 20rem;
-        width: 25vw;
-        height: 25vw;
+        width: 20vw;
+        height: 20vw;
 
         &--playing {
-            height: 25vw;
-            width: 25vw;
+            height: 20vw;
+            width: 20vw;
             // height: 20rem;
             animation: playwheel 7s linear infinite;
         }

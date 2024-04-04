@@ -3,7 +3,7 @@
         font-size: 1rem;
         background-color: #000000;
         color: gray;
-        border: 3px double gray;
+        border: 5px solid #4f4f4f;
         padding: .5rem;
         height: 5.5rem;
         width: 5.5rem;
@@ -19,7 +19,7 @@
 
         &:hover {
             // filter: brightness(110%);
-            border: 3px double #d1d1d1;
+            border: 5px solid #888888;
         }
 
     }

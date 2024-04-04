@@ -2,14 +2,14 @@
     &__wrapper {
         width: 90%;
         border: 2px solid rgb(66, 66, 66);
-        border-radius: .5rem;
+        // border-radius: .5rem;
         // padding: .5rem 0;
         background-color: black;
         margin: 1rem 0;
         display: flex;
         flex-direction: column;
-        justify-content: center;
-        min-height: 70px;
+        justify-content: space-between;
+        min-height: 145px;
         overflow: hidden;
     }
 
@@ -44,6 +44,14 @@
         overflow: hidden;
     }
 
+    &__row {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        margin: .5rem;
+    }
+
     &__track {
 
         &-number {
@@ -58,6 +66,7 @@
             flex-direction: column;
             align-items: flex-start;
             justify-content: space-between;
+            overflow: hidden;
         }
 
         &-title {
@@ -66,6 +75,7 @@
             overflow: hidden;
             white-space: nowrap;
             text-overflow: ellipsis;
+            width: 100%;
         }
 
         &-subtitle {
@@ -74,6 +84,39 @@
             overflow: hidden;
             white-space: nowrap;
             text-overflow: ellipsis;
+        }
+
+
+        &-elapsed {
+            margin: 0;
+            padding-right: .5rem;
+            margin-right: .5rem;
+            border-right: 1px solid gray;
+        }
+
+        &-duration {
+            margin: 0;
+        }
+
+        &-bpn {
+            margin: 0;
+            border: 1px solid gray;
+            padding: 0 .2rem;
+            min-width: 4rem;
+
+            &-number {
+                margin: 0;
+                font-size: 1.3rem;
+                text-align: center;
+            }
+
+            &-label {
+                margin: 0 0 .2rem 0;
+                height: .7rem;
+                line-height: .7rem;
+                font-size: .7rem;
+                text-align: end;
+            }
         }
     }
 }
