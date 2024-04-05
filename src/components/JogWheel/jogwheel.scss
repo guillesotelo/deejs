@@ -8,10 +8,11 @@
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        background-color: rgb(35, 35, 35);
+        background-color: #232323;
         border-radius: 50%;
-        border: 5px solid rgb(126, 126, 126);
-        box-shadow: 0px 5px 5px #000000;
+        border: 5px solid #373737;
+        box-shadow: 0px 1px 10px #000000;
+        transition: .2s;
 
         &:hover {
             filter: brightness(110%);
@@ -33,22 +34,22 @@
         }
 
         &-wrapper {
-            background-color: rgb(0, 0, 0);
+            background-color: #000000;
             border-radius: 50%;
             padding: 2rem;
-            // border: 3px solid rgb(158, 158, 158);
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
+            border: 2px solid #333333;
         }
 
         &-ring {
-            background-color: rgb(44, 44, 44);
+            background-color: #2c2c2c;
             border-radius: 50%;
             padding: 5rem;
-            border: 5px solid rgb(0, 0, 0);
-            box-shadow: 0px 5px 40px #000000;
+            border: 3px solid #363636;
+            box-shadow: 5px 5px 40px #000000;
 
         }
     }

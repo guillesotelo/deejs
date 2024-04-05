@@ -418,7 +418,7 @@ export default function Layout({ }: Props) {
     }
 
     return (
-        <div className="layout__container" tabIndex={0} style={{ outline: 'none', transform: isMobile ? 'rotate(90deg)' : '' }}>
+        <div className="layout__container" tabIndex={0} style={{ outline: 'none' }}>
             <div className="layout__left">
 
                 <div className="waveform__wrapper">
