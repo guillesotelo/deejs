@@ -5,10 +5,10 @@ type Props = {
 }
 
 export default function VolumeBar({ level }: Props) {
-    const [currentLevel, setCurrentLevel] = useState(-100)
+    const [db, setDb] = useState(-100)
 
     useEffect(() => {
-        setCurrentLevel(level)
+        setDb(level)
     }, [level])
 
     const getLevel = (level: number) => {
@@ -26,29 +26,83 @@ export default function VolumeBar({ level }: Props) {
     return (
         <div className="volumebar__container">
             <div className="volumebar__vumeter">
+
                 <div
                     className={
-                        `volumebar__bar ${getLevel(currentLevel) > 4 ? 'volumebar__bar-5' : ''}`
+                        `volumebar__bar ${db > -2 ? 'volumebar__bar-red' : ''}`
                     }>
                 </div>
                 <div
                     className={
-                        `volumebar__bar ${getLevel(currentLevel) > 3 ? 'volumebar__bar-4' : ''}`
+                        `volumebar__bar ${db > -5 ? 'volumebar__bar-red' : ''}`
+                    }>
+                </div>
+
+
+                <div
+                    className={
+                        `volumebar__bar ${db > -7 ? 'volumebar__bar-orange' : ''}`
                     }>
                 </div>
                 <div
                     className={
-                        `volumebar__bar ${getLevel(currentLevel) > 2 ? 'volumebar__bar-3' : ''}`
+                        `volumebar__bar ${db > -8 ? 'volumebar__bar-orange' : ''}`
                     }>
                 </div>
                 <div
                     className={
-                        `volumebar__bar ${getLevel(currentLevel) > 1 ? 'volumebar__bar-2' : ''}`
+                        `volumebar__bar ${db > -9 ? 'volumebar__bar-orange' : ''}`
                     }>
                 </div>
                 <div
                     className={
-                        `volumebar__bar ${getLevel(currentLevel) > 0 ? 'volumebar__bar-1' : ''}`
+                        `volumebar__bar ${db > -10 ? 'volumebar__bar-orange' : ''}`
+                    }>
+                </div>
+
+                <div
+                    className={
+                        `volumebar__bar ${db > -11 ? 'volumebar__bar-green' : ''}`
+                    }>
+                </div>
+                <div
+                    className={
+                        `volumebar__bar ${db > -12 ? 'volumebar__bar-green' : ''}`
+                    }>
+                </div>
+                <div
+                    className={
+                        `volumebar__bar ${db > -13 ? 'volumebar__bar-green' : ''}`
+                    }>
+                </div>
+                <div
+                    className={
+                        `volumebar__bar ${db > -14 ? 'volumebar__bar-green' : ''}`
+                    }>
+                </div>
+                <div
+                    className={
+                        `volumebar__bar ${db > -15 ? 'volumebar__bar-green' : ''}`
+                    }>
+                </div>
+                <div
+                    className={
+                        `volumebar__bar ${db > -20 ? 'volumebar__bar-green' : ''}`
+                    }>
+                </div>
+                <div
+                    className={
+                        `volumebar__bar ${db > -22 ? 'volumebar__bar-green' : ''}`
+                    }>
+                </div>
+                <div
+                    className={
+                        `volumebar__bar ${db > -24 ? 'volumebar__bar-green' : ''}`
+                    }>
+                </div>
+                <div
+                    className={
+                        `volumebar__bar ${db > -30 ? 'volumebar__bar-green' : ''}`
                     }>
                 </div>
             </div>

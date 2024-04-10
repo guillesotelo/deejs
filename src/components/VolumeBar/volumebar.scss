@@ -15,29 +15,21 @@
     }
 
     &__bar {
-        height: calc(100%/5);
+        height: calc(100%/15);
         border-radius: .1rem;
         width: .3rem;
         margin: .2rem;
         background-color: #242424;
 
-        &-1 {
+        &-green {
             background-color: green;
         }
 
-        &-2 {
-            background-color: green;
-        }
-
-        &-3 {
+        &-orange {
             background-color: #de7a00;
         }
 
-        &-4 {
-            background-color: #de7a00;
-        }
-
-        &-5 {
+        &-red {
             background-color: #bb0000;
         }
     }

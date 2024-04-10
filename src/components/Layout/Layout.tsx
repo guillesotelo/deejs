@@ -8,6 +8,7 @@ import Knob from '../Knob/Knob'
 import VolumeBar from '../VolumeBar/VolumeBar'
 import Switch from '../Switch/Switch'
 import WaveSurfer from 'wavesurfer.js'
+import Minimap from 'wavesurfer.js/dist/plugins/minimap.esm.js'
 import { AppContext } from '../../AppContext'
 import { formatTime } from '../../helpers'
 import { analyze } from 'web-audio-beat-detector'
@@ -46,11 +47,16 @@ export default function Layout({ }: Props) {
     const [rightMeta, setRightMeta] = useState<{ [key: string]: any }>({})
 
     const [mixer, setMixer] = useState(.5)
-    const [showLayouts, setShowLayouts] = useState(true)
-    const [paths, setPaths] = useState<string[]>(JSON.parse(localStorage.getItem('paths') || '[]'))
+    const [showLayouts, setShowLayouts] = useState(false)
+    const [metas, setMetas] = useState(JSON.parse(localStorage.getItem('metas') || '[]'))
     const { isMobile } = useContext(AppContext)
 
-    console.log('paths', paths)
+    console.log('metas', metas)
+
+    useEffect(() => {
+        if (leftMeta && leftMeta.common) setMetas([...metas, leftMeta.common])
+        if (rightMeta && rightMeta.common) setMetas([...metas, rightMeta.common])
+    }, [leftMeta, rightMeta])
 
     useEffect(() => {
         if (leftElapsed >= leftDuration) stopLeftTrack()
@@ -63,7 +69,18 @@ export default function Layout({ }: Props) {
                 container: leftWaveformRef.current,
                 height: 70,
                 minPxPerSec: 50,
-                normalize: true
+                normalize: true,
+                waveColor: '#666666',
+                progressColor: '#689cad',
+                hideScrollbar: true,
+                dragToSeek: true,
+                plugins: [
+                    Minimap.create({
+                        height: 20,
+                        waveColor: '#8e8e8e',
+                        progressColor: '#acbec4',
+                    }),
+                ],
             })
             waveSurferInstance.load(leftTrackPath)
             waveSurferInstance.on('ready', () => {
@@ -79,13 +96,6 @@ export default function Layout({ }: Props) {
                 waveSurferInstance.destroy()
             }
         }
-
-        if (leftTrackPath && !paths.includes(leftTrackPath)) {
-            console.log('ye')
-            const newPaths = paths.concat(leftTrackPath)
-            setPaths(newPaths)
-            localStorage.setItem('paths', JSON.stringify(newPaths))
-        }
     }, [leftTrackPath])
 
     useEffect(() => {
@@ -94,7 +104,18 @@ export default function Layout({ }: Props) {
                 container: rightWaveformRef.current,
                 height: 70,
                 minPxPerSec: 50,
-                normalize: true
+                normalize: true,
+                waveColor: '#666666',
+                progressColor: '#689cad',
+                hideScrollbar: true,
+                dragToSeek: true,
+                plugins: [
+                    Minimap.create({
+                        height: 20,
+                        waveColor: '#8e8e8e',
+                        progressColor: '#acbec4',
+                    }),
+                ],
             })
             waveSurferInstance.load(rightTrackPath)
             waveSurferInstance.on('ready', () => {
@@ -109,12 +130,6 @@ export default function Layout({ }: Props) {
             return () => {
                 waveSurferInstance.destroy()
             }
-        }
-
-        if (rightTrackPath && !paths.includes(rightTrackPath)) {
-            const newPaths = paths.concat(rightTrackPath)
-            setPaths(newPaths)
-            localStorage.setItem('paths', JSON.stringify(newPaths))
         }
     }, [rightTrackPath])
 
