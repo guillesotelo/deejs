@@ -51,7 +51,10 @@ export default function Layout({ }: Props) {
     const [metas, setMetas] = useState(JSON.parse(localStorage.getItem('metas') || '[]'))
     const { isMobile } = useContext(AppContext)
 
-    console.log('metas', metas)
+    const [leftFilterNodes, setLeftFilterNodes] = useState({});
+    const [rightFilterNodes, setRightFilterNodes] = useState({});
+
+    // console.log('metas', metas)
 
     useEffect(() => {
         if (leftMeta && leftMeta.common) setMetas([...metas, leftMeta.common])
@@ -65,6 +68,11 @@ export default function Layout({ }: Props) {
 
     useEffect(() => {
         if (leftWaveformRef && leftWaveformRef.current) {
+
+            const audio = new Audio()
+            audio.controls = true
+            audio.src = leftTrackPath
+
             const waveSurferInstance = WaveSurfer.create({
                 container: leftWaveformRef.current,
                 height: 70,
@@ -74,20 +82,45 @@ export default function Layout({ }: Props) {
                 progressColor: '#689cad',
                 hideScrollbar: true,
                 dragToSeek: true,
+                media: audio,
                 plugins: [
                     Minimap.create({
                         height: 20,
-                        waveColor: '#8e8e8e',
-                        progressColor: '#acbec4',
+                        waveColor: '#353535',
+                        progressColor: '#576b72',
                     }),
                 ],
             })
-            waveSurferInstance.load(leftTrackPath)
+            // waveSurferInstance.load(leftTrackPath)
             waveSurferInstance.on('ready', () => {
                 setLeftLoading(false)
                 leftWaveSurferRef.current = waveSurferInstance
                 setLeftDuration(formatTime(waveSurferInstance.getDuration()))
                 getTempo(waveSurferInstance.getDecodedData(), setLeftBpn)
+
+                // const audioContext = new AudioContext()
+                // const mediaNode = audioContext.createMediaElementSource(leftWaveSurferRef.current.getMediaElement())
+
+                // const eqBands = [32, 64, 125, 250, 500, 1000, 2000, 4000, 8000, 16000]
+
+                // // Create a biquad filter for each band
+                // const filters = eqBands.map((band) => {
+                //     const filter = audioContext.createBiquadFilter()
+                //     filter.type = band <= 32 ? 'lowshelf' : band >= 16000 ? 'highshelf' : 'peaking'
+                //     filter.gain.value = Math.random() * 40 - 20
+                //     filter.Q.value = 1 // resonance
+                //     filter.frequency.value = band // the cut-off frequency
+                //     return filter
+                // })
+
+                // // Connect the filters and media node sequentially
+                // const equalizer = filters.reduce((prev: BiquadFilterNode, curr: BiquadFilterNode) => {
+                //     prev.connect(curr)
+                //     return curr
+                // }, mediaNode as any)
+
+                // // Connect the filters to the audio output
+                // equalizer.connect(audioContext.destination)
             })
 
             setLeftWavesurfer(waveSurferInstance)
@@ -374,54 +407,67 @@ export default function Layout({ }: Props) {
     }
 
     const handleEq = (channel: string, type: string, value: number) => {
+        // const audioContext = channel === 'left' ? leftAudioContext : rightAudioContext
+        // const trackAudio = channel === 'left' ? leftTrackAudio : rightTrackAudio
+
+        // const applyFilterChanges = (channel: string) => {
         //     const audioContext = channel === 'left' ? leftAudioContext : rightAudioContext
+        //     const filterNodes = channel === 'left' ? leftFilterNodes : rightFilterNodes
         //     const trackAudio = channel === 'left' ? leftTrackAudio : rightTrackAudio
 
         //     if (trackAudio) {
-        //         // Get the existing filter node if it already exists, otherwise create a new one
-        //         const filterNode = channel === 'left' ? leftFilterNode : rightFilterNode
-        //         const filter = filterNode ? filterNode[type] : audioContext.createBiquadFilter()
-
-        //         // Update filter parameters
-        //         filter.type = type as BiquadFilterType
-        //         filter.frequency.value = 1000 // Adjust as needed
-        //         filter.gain.value = (value - 50) / 10 // Adjust gain based on slider value
-        //         filter.Q.value = 1 // Adjust Q factor as needed
-
-        //         // Connect the audio source to the filter, and then to the destination
+        //         // Get the source node
         //         const source = audioContext.createMediaElementSource(trackAudio)
-        //         source.connect(filter)
-        //         filter.connect(audioContext.destination)
 
-        //         // Store the filter node for future reference
-        //         if (channel === 'left') {
-        //             setLeftFilterNode({ ...leftFilterNode, [type]: filter })
-        //         } else {
-        //             setRightFilterNode({ ...rightFilterNode, [type]: filter })
-        //         }
+        //         // Disconnect the previous filter nodes from the destination
+        //         Object.values(filterNodes).forEach((filter) => {
+        //             filter.disconnect()
+        //         })
 
-        //         // Apply the changes to the playing track
-        //         applyFilterChanges(channel, type, value)
+        //         // Connect the source to all filter nodes, and then to the destination
+        //         let prevNode = source
+        //         Object.values(filterNodes).forEach((filter) => {
+        //             prevNode.connect(filter)
+        //             prevNode = filter
+        //         })
+        //         prevNode.connect(audioContext.destination)
         //     }
+        // }
+
+        // if (trackAudio) {
+        //     // Get the existing filter nodes for the specified channel
+        //     const filterNodes = channel === 'left' ? leftFilterNodes : rightFilterNodes
+
+        //     // Get the existing filter node for the specified type, or create a new one if it doesn't exist
+        //     let filter = filterNodes[type]
+        //     if (!filter) {
+        //         filter = audioContext.createBiquadFilter()
+        //         filter.type = type as BiquadFilterType
+        //         filterNodes[type] = filter
+
+        //         // Update the state to reflect the new filter node
+        //         if (channel === 'left') {
+        //             setLeftFilterNodes({ ...leftFilterNodes, [type]: filter });
+        //         } else {
+        //             setRightFilterNodes({ ...rightFilterNodes, [type]: filter });
+        //         }
+        //     }
+
+        //     // Update filter parameters
+        //     filter.frequency.value = 1000 // Adjust as needed
+        //     filter.gain.value = (value - 50) / 10 // Adjust gain based on slider value
+        //     filter.Q.value = 1 // Adjust Q factor as needed
+
+        //     // Connect the audio source to the filter, and then to the destination
+        //     const source = audioContext.createMediaElementSource(trackAudio)
+        //     source.connect(filter)
+        //     filter.connect(audioContext.destination)
+
+        //     // Apply the changes to the playing track
+        //     applyFilterChanges(channel)
+        // }
     }
 
-    // const applyFilterChanges = (channel: string, type: string, value: number) => {
-    //     const audioContext = channel === 'left' ? leftAudioContext : rightAudioContext
-    //     const filterNode = channel === 'left' ? leftFilterNode : rightFilterNode
-
-    //     if (filterNode[type]) {
-    //         let source
-    //         if (channel === 'left' && leftTrackAudio) source = audioContext.createMediaElementSource(leftTrackAudio)
-    //         else if (channel === 'right' && rightTrackAudio) source = audioContext.createMediaElementSource(rightTrackAudio)
-    //         if (source) {
-    //             // Disconnect the previous filter node from the destination
-    //             filterNode[type].disconnect()
-    //             // Connect the audio source to the updated filter node, and then to the destination
-    //             source.connect(filterNode[type])
-    //             filterNode[type].connect(audioContext.destination)
-    //         }
-    //     }
-    // }
 
     const getTrackMeta = (tag: string, deck: string) => {
         if (deck === 'left' && leftMeta.common) {
