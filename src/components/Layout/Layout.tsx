@@ -47,7 +47,7 @@ export default function Layout({ }: Props) {
     const [rightMeta, setRightMeta] = useState<{ [key: string]: any }>({})
 
     const [mixer, setMixer] = useState(.5)
-    const [showLayouts, setShowLayouts] = useState(false)
+    const [showLayouts, setShowLayouts] = useState(true)
     const [metas, setMetas] = useState(JSON.parse(localStorage.getItem('metas') || '[]'))
     const { isMobile } = useContext(AppContext)
 
