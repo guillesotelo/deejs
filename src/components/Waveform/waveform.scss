@@ -50,15 +50,15 @@
         flex-direction: row;
         align-items: center;
         justify-content: space-between;
-        margin: .5rem;
+        margin: .5vw;
     }
 
     &__track {
 
         &-number {
-            margin: 0 .4rem 0 0;
-            padding: 0 .7rem;
-            font-size: 1.2rem;
+            margin: 0 .4vw 0 0;
+            padding: 0 .7vw;
+            font-size: 1.2vw;
             border: 1px solid rgb(119, 179, 199);
             border-top-width: 5px;
         }
@@ -73,7 +73,7 @@
 
         &-title {
             margin: 0;
-            font-size: .9rem;
+            font-size: .9vw;
             overflow: hidden;
             white-space: nowrap;
             text-overflow: ellipsis;
@@ -82,7 +82,7 @@
 
         &-artist {
             margin: 0;
-            font-size: .8rem;
+            font-size: .8vw;
             overflow: hidden;
             white-space: nowrap;
             text-overflow: ellipsis;
@@ -92,32 +92,34 @@
 
         &-elapsed {
             margin: 0;
-            padding-right: .5rem;
-            margin-right: .5rem;
+            padding-right: .5vw;
+            margin-right: .5vw;
             border-right: 1px solid gray;
+            font-size: .9vw;
         }
 
         &-duration {
             margin: 0;
+            font-size: .9vw;
         }
 
         &-bpn {
-            margin: 0 0 0 .5rem;
+            margin: 0 0 0 .5vw;
             border: 1px solid gray;
-            padding: 0 .2rem;
-            min-width: 4rem;
+            padding: 0 .2vw;
+            min-width: 4vw;
 
             &-number {
                 margin: 0;
-                font-size: 1.3rem;
+                font-size: 1.3vw;
                 text-align: center;
             }
 
             &-label {
-                margin: 0 0 .2rem 0;
-                height: .7rem;
-                line-height: .7rem;
-                font-size: .7rem;
+                margin: 0 0 .2vw 0;
+                height: .7vw;
+                line-height: .7vw;
+                font-size: .7vw;
                 text-align: end;
             }
         }

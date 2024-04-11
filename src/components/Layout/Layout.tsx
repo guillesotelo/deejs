@@ -59,12 +59,16 @@ export default function Layout({ }: Props) {
     const [metas, setMetas] = useState(JSON.parse(localStorage.getItem('metas') || '[]'))
     const { isMobile } = useContext(AppContext)
 
+    const [aPressed, setAPressed] = useState(false)
+    const [zPressed, setZPressed] = useState(false)
+    const [kPressed, setKPressed] = useState(false)
+
     // console.log('metas', metas)
 
     useEffect(() => {
         // Filter logic
     }, [
-        leftFilterHi, 
+        leftFilterHi,
         leftFilterMid,
         leftFilterLow,
         rightFilterHi,
@@ -168,6 +172,7 @@ export default function Layout({ }: Props) {
 
     useEffect(() => {
         document.onkeydown = handleKeyDown
+        document.onkeyup = handleKeyUp
     }, [leftTrackPath, rightTrackPath, playLeft, playRight])
 
     useEffect(() => {
@@ -298,10 +303,14 @@ export default function Layout({ }: Props) {
                 openFileLoaderLeft()
                 break
             case 'a':
-                stopLeftTrack()
+                if (leftTrackPath && !playLeft) {
+                    setAPressed(true)
+                    playLeftTrack()
+                }
                 break
             case 'z':
-                playLeftTrack()
+                if (aPressed) setZPressed(true)
+                else playLeftTrack()
                 break
             case 's':
                 setLeftVolume((val) => val + .02 < 1 ? val + .02 : 1)
@@ -324,12 +333,32 @@ export default function Layout({ }: Props) {
                 break
             case 'm':
                 playRightTrack()
+                if (rightTrackPath && !playRight) playRightTrack()
                 break
             case 'j':
                 setRightVolume((val) => val + .02 < 1 ? val + .02 : 1)
                 break
             case 'n':
                 setRightVolume((val) => val > .02 ? val - .02 : 0)
+                break
+            default:
+                break
+        }
+    }
+
+    const handleKeyUp = (e: any) => {
+        console.log('aPressed', aPressed)
+        console.log('zPressed', zPressed)
+        switch (e.key.toLowerCase()) {
+            case 'a':
+                setAPressed(false)
+                if (!zPressed && leftTrackPath && playLeft) stopLeftTrack()
+                break
+            case 'z':
+                setZPressed(false)
+                break
+            case 'm':
+                if (rightTrackPath && playRight) stopRightTrack()
                 break
             default:
                 break
@@ -439,7 +468,7 @@ export default function Layout({ }: Props) {
                         </div>
                         :
                         <div className='waveform__row'>
-                            <div className="waveform__info" style={{ width: '65%' }}>
+                            <div className="waveform__info" style={{ width: '50%' }}>
                                 <p className="waveform__track-number">1</p>
                                 <div className="waveform__track-name">
                                     {leftTrackName ?
@@ -623,7 +652,7 @@ export default function Layout({ }: Props) {
                         </div>
                         :
                         <div className='waveform__row'>
-                            <div className="waveform__info" style={{ width: '65%' }}>
+                            <div className="waveform__info" style={{ width: '50%' }}>
                                 <p className="waveform__track-number">2</p>
                                 <div className="waveform__track-name">
                                     {rightTrackName ?
