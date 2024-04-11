@@ -12,6 +12,8 @@ import Minimap from 'wavesurfer.js/dist/plugins/minimap.esm.js'
 import { AppContext } from '../../AppContext'
 import { formatTime } from '../../helpers'
 import { analyze } from 'web-audio-beat-detector'
+import DjsLogo from '../../assets/images/djs-logo-black.png'
+import { APP_VERSION } from '../../constants/app'
 
 type Props = {}
 
@@ -22,7 +24,7 @@ export default function Layout({ }: Props) {
     const [playLeft, setPlayLeft] = useState(false)
     const [leftTrackName, setLeftTrackName] = useState('')
     const [leftVolume, setLeftVolume] = useState(0.8)
-    const [pitchLeft, setPitchLeft] = useState(.5)
+    const [leftPitch, setLeftPitch] = useState(.5)
     const [dbLeft, setDbLeft] = useState(-100)
     const [leftElapsed, setLeftElapsed] = useState('00:00')
     const [leftDuration, setLeftDuration] = useState('00:00')
@@ -30,6 +32,9 @@ export default function Layout({ }: Props) {
     const leftWaveformRef = useRef<any>()
     const leftWaveSurferRef = useRef<any>({ isPlaying: playLeft })
     const [leftMeta, setLeftMeta] = useState<{ [key: string]: any }>({})
+    const [leftFilterHi, setLeftFilterHi] = useState(0)
+    const [leftFilterMid, setLeftFilterMid] = useState(0)
+    const [leftFilterLow, setLeftFilterLow] = useState(0)
 
     const [rightTrackPath, setRightTrackPath] = useState('')
     const [rightLoading, setRightLoading] = useState(true)
@@ -37,7 +42,7 @@ export default function Layout({ }: Props) {
     const [playRight, setPlayRight] = useState(false)
     const [rightTrackName, setRightTrackName] = useState('')
     const [rightVolume, setRightVolume] = useState(0.8)
-    const [pitchRight, setPitchRight] = useState(.5)
+    const [rightPitch, setRightPitch] = useState(.5)
     const [dbRight, setDbRight] = useState(-100)
     const [rightElapsed, setRightElapsed] = useState('00:00')
     const [rightDuration, setRightDuration] = useState('00:00')
@@ -45,21 +50,37 @@ export default function Layout({ }: Props) {
     const rightWaveformRef = useRef<any>()
     const rightWaveSurferRef = useRef<any>({ isPlaying: playLeft })
     const [rightMeta, setRightMeta] = useState<{ [key: string]: any }>({})
+    const [rightFilterHi, setRightFilterHi] = useState(0)
+    const [rightFilterMid, setRightFilterMid] = useState(0)
+    const [rightFilterLow, setRightFilterLow] = useState(0)
 
     const [mixer, setMixer] = useState(.5)
     const [showLayouts, setShowLayouts] = useState(true)
     const [metas, setMetas] = useState(JSON.parse(localStorage.getItem('metas') || '[]'))
     const { isMobile } = useContext(AppContext)
 
-    const [leftFilterNodes, setLeftFilterNodes] = useState({});
-    const [rightFilterNodes, setRightFilterNodes] = useState({});
-
     // console.log('metas', metas)
+
+    useEffect(() => {
+        // Filter logic
+    }, [
+        leftFilterHi, 
+        leftFilterMid,
+        leftFilterLow,
+        rightFilterHi,
+        rightFilterMid,
+        rightFilterLow
+    ])
 
     useEffect(() => {
         if (leftMeta && leftMeta.common) setMetas([...metas, leftMeta.common])
         if (rightMeta && rightMeta.common) setMetas([...metas, rightMeta.common])
     }, [leftMeta, rightMeta])
+
+    useEffect(() => {
+        if (leftWavesurfer) getTempo(leftWavesurfer.getDecodedData(), leftWavesurfer.getPlaybackRate(), setLeftBpn)
+        if (rightWavesurfer) getTempo(rightWavesurfer.getDecodedData(), rightWavesurfer.getPlaybackRate(), setRightBpn)
+    }, [leftPitch, rightPitch])
 
     useEffect(() => {
         if (leftElapsed >= leftDuration) stopLeftTrack()
@@ -96,43 +117,22 @@ export default function Layout({ }: Props) {
                 setLeftLoading(false)
                 leftWaveSurferRef.current = waveSurferInstance
                 setLeftDuration(formatTime(waveSurferInstance.getDuration()))
-                getTempo(waveSurferInstance.getDecodedData(), setLeftBpn)
-
-                // const audioContext = new AudioContext()
-                // const mediaNode = audioContext.createMediaElementSource(leftWaveSurferRef.current.getMediaElement())
-
-                // const eqBands = [32, 64, 125, 250, 500, 1000, 2000, 4000, 8000, 16000]
-
-                // // Create a biquad filter for each band
-                // const filters = eqBands.map((band) => {
-                //     const filter = audioContext.createBiquadFilter()
-                //     filter.type = band <= 32 ? 'lowshelf' : band >= 16000 ? 'highshelf' : 'peaking'
-                //     filter.gain.value = Math.random() * 40 - 20
-                //     filter.Q.value = 1 // resonance
-                //     filter.frequency.value = band // the cut-off frequency
-                //     return filter
-                // })
-
-                // // Connect the filters and media node sequentially
-                // const equalizer = filters.reduce((prev: BiquadFilterNode, curr: BiquadFilterNode) => {
-                //     prev.connect(curr)
-                //     return curr
-                // }, mediaNode as any)
-
-                // // Connect the filters to the audio output
-                // equalizer.connect(audioContext.destination)
+                getTempo(waveSurferInstance.getDecodedData(), waveSurferInstance.getPlaybackRate(), setLeftBpn)
             })
 
             setLeftWavesurfer(waveSurferInstance)
 
-            return () => {
-                waveSurferInstance.destroy()
-            }
+            return () => waveSurferInstance.destroy()
         }
     }, [leftTrackPath])
 
     useEffect(() => {
         if (rightWaveformRef && rightWaveformRef.current) {
+
+            const audio = new Audio()
+            audio.controls = true
+            audio.src = rightTrackPath
+
             const waveSurferInstance = WaveSurfer.create({
                 container: rightWaveformRef.current,
                 height: 70,
@@ -142,27 +142,26 @@ export default function Layout({ }: Props) {
                 progressColor: '#689cad',
                 hideScrollbar: true,
                 dragToSeek: true,
+                media: audio,
                 plugins: [
                     Minimap.create({
                         height: 20,
-                        waveColor: '#8e8e8e',
-                        progressColor: '#acbec4',
+                        waveColor: '#353535',
+                        progressColor: '#576b72',
                     }),
                 ],
             })
-            waveSurferInstance.load(rightTrackPath)
+            // waveSurferInstance.load(rightTrackPath)
             waveSurferInstance.on('ready', () => {
                 setRightLoading(false)
                 rightWaveSurferRef.current = waveSurferInstance
                 setRightDuration(formatTime(waveSurferInstance.getDuration()))
-                getTempo(waveSurferInstance.getDecodedData(), setRightBpn)
+                getTempo(waveSurferInstance.getDecodedData(), waveSurferInstance.getPlaybackRate(), setRightBpn)
             })
 
             setRightWavesurfer(waveSurferInstance)
 
-            return () => {
-                waveSurferInstance.destroy()
-            }
+            return () => waveSurferInstance.destroy()
         }
     }, [rightTrackPath])
 
@@ -272,10 +271,10 @@ export default function Layout({ }: Props) {
         rightWavesurfer?.setVolume(rightMix)
     }, [leftVolume, rightVolume, mixer])
 
-    const getTempo = async (audioBuffer: AudioBuffer | null, setTempo: (value: string) => void) => {
+    const getTempo = async (audioBuffer: AudioBuffer | null, playbackRate: number, setTempo: (value: string) => void) => {
         if (audioBuffer) {
             const tempo = await analyze(audioBuffer)
-            if (tempo) setTempo(tempo.toFixed(2))
+            if (tempo) setTempo((tempo * playbackRate).toFixed(2))
         }
     }
 
@@ -392,82 +391,19 @@ export default function Layout({ }: Props) {
         setRightVolume(newVolume)
     }
 
-    const handlePitchLeft = (e: any) => {
+    const handleleftPitch = (e: any) => {
         const { value } = e.target
         const decimaVal = value / 100
-        setPitchLeft(decimaVal)
-        leftWavesurfer?.setPlaybackRate(1 + ((decimaVal - 0.5) / 5))
+        setLeftPitch(decimaVal)
+        leftWavesurfer?.setPlaybackRate(1 + ((decimaVal - 0.5) / 3))
     }
 
-    const handlePitchRight = (e: any) => {
+    const handlerightPitch = (e: any) => {
         const { value } = e.target
         const decimaVal = value / 100
-        setPitchRight(decimaVal)
-        rightWavesurfer?.setPlaybackRate(1 + ((decimaVal - 0.5) / 5))
+        setRightPitch(decimaVal)
+        rightWavesurfer?.setPlaybackRate(1 + ((decimaVal - 0.5) / 3))
     }
-
-    const handleEq = (channel: string, type: string, value: number) => {
-        // const audioContext = channel === 'left' ? leftAudioContext : rightAudioContext
-        // const trackAudio = channel === 'left' ? leftTrackAudio : rightTrackAudio
-
-        // const applyFilterChanges = (channel: string) => {
-        //     const audioContext = channel === 'left' ? leftAudioContext : rightAudioContext
-        //     const filterNodes = channel === 'left' ? leftFilterNodes : rightFilterNodes
-        //     const trackAudio = channel === 'left' ? leftTrackAudio : rightTrackAudio
-
-        //     if (trackAudio) {
-        //         // Get the source node
-        //         const source = audioContext.createMediaElementSource(trackAudio)
-
-        //         // Disconnect the previous filter nodes from the destination
-        //         Object.values(filterNodes).forEach((filter) => {
-        //             filter.disconnect()
-        //         })
-
-        //         // Connect the source to all filter nodes, and then to the destination
-        //         let prevNode = source
-        //         Object.values(filterNodes).forEach((filter) => {
-        //             prevNode.connect(filter)
-        //             prevNode = filter
-        //         })
-        //         prevNode.connect(audioContext.destination)
-        //     }
-        // }
-
-        // if (trackAudio) {
-        //     // Get the existing filter nodes for the specified channel
-        //     const filterNodes = channel === 'left' ? leftFilterNodes : rightFilterNodes
-
-        //     // Get the existing filter node for the specified type, or create a new one if it doesn't exist
-        //     let filter = filterNodes[type]
-        //     if (!filter) {
-        //         filter = audioContext.createBiquadFilter()
-        //         filter.type = type as BiquadFilterType
-        //         filterNodes[type] = filter
-
-        //         // Update the state to reflect the new filter node
-        //         if (channel === 'left') {
-        //             setLeftFilterNodes({ ...leftFilterNodes, [type]: filter });
-        //         } else {
-        //             setRightFilterNodes({ ...rightFilterNodes, [type]: filter });
-        //         }
-        //     }
-
-        //     // Update filter parameters
-        //     filter.frequency.value = 1000 // Adjust as needed
-        //     filter.gain.value = (value - 50) / 10 // Adjust gain based on slider value
-        //     filter.Q.value = 1 // Adjust Q factor as needed
-
-        //     // Connect the audio source to the filter, and then to the destination
-        //     const source = audioContext.createMediaElementSource(trackAudio)
-        //     source.connect(filter)
-        //     filter.connect(audioContext.destination)
-
-        //     // Apply the changes to the playing track
-        //     applyFilterChanges(channel)
-        // }
-    }
-
 
     const getTrackMeta = (tag: string, deck: string) => {
         if (deck === 'left' && leftMeta.common) {
@@ -476,6 +412,20 @@ export default function Layout({ }: Props) {
         if (deck === 'right' && rightMeta.common) {
             return String(rightMeta.common[tag])
         }
+    }
+
+    const onResetLeftPitch = () => {
+        setLeftPitch(.5)
+        leftWavesurfer?.setPlaybackRate(1)
+    }
+
+    const onResetRightPitch = () => {
+        setRightPitch(.5)
+        rightWavesurfer?.setPlaybackRate(1)
+    }
+
+    const onResetMixer = () => {
+        setMixer(.5)
     }
 
     return (
@@ -503,13 +453,15 @@ export default function Layout({ }: Props) {
                                 </div>
                             </div>
                             <div className="waveform__info">
-                                <p className="waveform__track-elapsed">{leftElapsed}</p>
-                                <p className="waveform__track-duration">{leftDuration}</p>
-                            </div>
-                            <div className="waveform__info">
-                                <div className="waveform__track-bpn">
-                                    <p className="waveform__track-bpn-number">{leftBpn.split('.')[0]}.<span style={{ fontSize: '.9rem' }}>{leftBpn.split('.')[1]}</span></p>
-                                    <p className="waveform__track-bpn-label">BPN</p>
+                                <div className="waveform__info">
+                                    <p className="waveform__track-elapsed">{leftElapsed}</p>
+                                    <p className="waveform__track-duration">{leftDuration}</p>
+                                </div>
+                                <div className="waveform__info">
+                                    <div className="waveform__track-bpn">
+                                        <p className="waveform__track-bpn-number">{leftBpn.split('.')[0]}.<span style={{ fontSize: '.9rem' }}>{leftBpn.split('.')[1]}</span></p>
+                                        <p className="waveform__track-bpn-label">BPN</p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -537,6 +489,7 @@ export default function Layout({ }: Props) {
                             textColor='orange'
                             disabled={Boolean(leftTrackPath && leftLoading)}
                             loaded={Boolean(leftTrackPath)}
+                            borderColor='#544322'
                         />
                         <Button
                             label={playLeft ? 'Pause' : 'Play'}
@@ -546,15 +499,18 @@ export default function Layout({ }: Props) {
                             playing={Boolean(leftTrackPath && playLeft)}
                             pause={Boolean(leftTrackPath && !playLeft)}
                             disabled={Boolean(leftTrackPath && leftLoading)}
+                            borderColor='#134c13'
                         />
                     </div>
                     <div className="layout__player-pitch">
                         <Slider
-                            value={pitchLeft}
-                            handleChange={handlePitchLeft}
+                            value={leftPitch}
+                            handleChange={handleleftPitch}
                             orientation='v'
-                            scale={0.7}
-                            label={pitchLeft}
+                            // scale={1.2}
+                            label={leftPitch}
+                            onReset={onResetLeftPitch}
+                            reset={leftPitch === 0.5}
                         />
                     </div>
                 </div>
@@ -573,17 +529,44 @@ export default function Layout({ }: Props) {
 
                     </div>
                 </div>
+
+                <div className="layout__logo">
+                    <img src={DjsLogo} alt="DJS" className="layout__logo-image" draggable={false} />
+                    <div className="layout__logo-col">
+                        <p className="layout__logo-text">Online sessions</p>
+                        <p className="layout__logo-text">{APP_VERSION}</p>
+                    </div>
+                </div>
                 <div className="layout__center-row">
                     <div className="layout__center-left">
                         <div className="layout__knobs">
-                            <Knob label='HI' setValue={(value) => handleEq('left', 'highshelf', value)} />
-                            <Knob label='MID' setValue={(value) => handleEq('left', 'peaking', value)} />
-                            <Knob label='LOW' setValue={(value) => handleEq('left', 'lowshelf', value)} />
+                            <Knob
+                                label='HI'
+                                value={leftFilterHi}
+                                setValue={setLeftFilterHi}
+                                onReset={() => setLeftFilterHi(0)}
+                                reset={leftFilterHi === 0}
+                            />
+                            <Knob
+                                label='MID'
+                                value={leftFilterMid}
+                                setValue={setLeftFilterMid}
+                                onReset={() => setLeftFilterMid(0)}
+                                reset={leftFilterMid === 0}
+                            />
+                            <Knob
+                                label='LOW'
+                                value={leftFilterLow}
+                                setValue={setLeftFilterLow}
+                                onReset={() => setLeftFilterLow(0)}
+                                reset={leftFilterLow === 0}
+                            />
                         </div>
                         <Slider
                             value={leftVolume}
                             handleChange={handleLeftVolumeChange}
                             orientation='v'
+                            showLevel
                         />
                     </div>
                     <div className="layout__center-center">
@@ -592,14 +575,33 @@ export default function Layout({ }: Props) {
                     </div>
                     <div className="layout__center-right">
                         <div className="layout__knobs">
-                            <Knob label='HI' setValue={(value) => handleEq('right', 'highshelf', value)} />
-                            <Knob label='MID' setValue={(value) => handleEq('right', 'peaking', value)} />
-                            <Knob label='LOW' setValue={(value) => handleEq('right', 'lowshelf', value)} />
+                            <Knob
+                                label='HI'
+                                value={rightFilterHi}
+                                setValue={setRightFilterHi}
+                                onReset={() => setRightFilterHi(0)}
+                                reset={rightFilterHi === 0}
+                            />
+                            <Knob
+                                label='MID'
+                                value={rightFilterMid}
+                                setValue={setRightFilterMid}
+                                onReset={() => setRightFilterMid(0)}
+                                reset={rightFilterMid === 0}
+                            />
+                            <Knob
+                                label='LOW'
+                                value={rightFilterLow}
+                                setValue={setRightFilterLow}
+                                onReset={() => setRightFilterLow(0)}
+                                reset={rightFilterLow === 0}
+                            />
                         </div>
                         <Slider
                             value={rightVolume}
                             handleChange={handleRightVolumeChange}
                             orientation='v'
+                            showLevel
                         />
                     </div>
                 </div>
@@ -607,6 +609,8 @@ export default function Layout({ }: Props) {
                     <Slider
                         value={mixer}
                         handleChange={handleMixer}
+                        onReset={onResetMixer}
+                        reset={mixer === 0.5}
                     />
                 </div>
             </div>
@@ -620,7 +624,7 @@ export default function Layout({ }: Props) {
                         :
                         <div className='waveform__row'>
                             <div className="waveform__info" style={{ width: '65%' }}>
-                                <p className="waveform__track-number">1</p>
+                                <p className="waveform__track-number">2</p>
                                 <div className="waveform__track-name">
                                     {rightTrackName ?
                                         <>
@@ -633,13 +637,15 @@ export default function Layout({ }: Props) {
                                 </div>
                             </div>
                             <div className="waveform__info">
-                                <p className="waveform__track-elapsed">{rightElapsed}</p>
-                                <p className="waveform__track-duration">{rightDuration}</p>
-                            </div>
-                            <div className="waveform__info">
-                                <div className="waveform__track-bpn">
-                                    <p className="waveform__track-bpn-number">{rightBpn.split('.')[0]}.<span style={{ fontSize: '.9rem' }}>{rightBpn.split('.')[1]}</span></p>
-                                    <p className="waveform__track-bpn-label">BPN</p>
+                                <div className="waveform__info">
+                                    <p className="waveform__track-elapsed">{rightElapsed}</p>
+                                    <p className="waveform__track-duration">{rightDuration}</p>
+                                </div>
+                                <div className="waveform__info">
+                                    <div className="waveform__track-bpn">
+                                        <p className="waveform__track-bpn-number">{rightBpn.split('.')[0]}.<span style={{ fontSize: '.9rem' }}>{rightBpn.split('.')[1]}</span></p>
+                                        <p className="waveform__track-bpn-label">BPN</p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -667,6 +673,7 @@ export default function Layout({ }: Props) {
                             textColor='orange'
                             disabled={Boolean(rightTrackPath && rightLoading)}
                             loaded={Boolean(rightTrackPath)}
+                            borderColor='#544322'
                         />
                         <Button
                             label={playRight ? 'Pause' : 'Play'}
@@ -676,14 +683,17 @@ export default function Layout({ }: Props) {
                             playing={Boolean(rightTrackPath && playRight)}
                             pause={Boolean(rightTrackPath && !playRight)}
                             disabled={Boolean(rightTrackPath && rightLoading)}
+                            borderColor='#134c13'
                         />
                     </div>
                     <div className="layout__player-pitch">
                         <Slider
-                            value={pitchRight}
-                            handleChange={handlePitchRight}
+                            value={rightPitch}
+                            handleChange={handlerightPitch}
                             orientation='v'
-                            scale={0.7}
+                            // scale={0.7}
+                            onReset={onResetRightPitch}
+                            reset={rightPitch === 0.5}
                         />
                     </div>
                 </div>

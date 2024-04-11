@@ -131,6 +131,31 @@
         }
     }
 
+    &__logo {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        -webkit-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+
+        &-col {
+            display: flex;
+            flex-direction: column;
+            margin: 0 0 0 .5rem;
+            // align-items: center;
+        }
+
+        &-image {
+            height: 2rem;
+            width: 2rem;
+        }
+
+        &-text {
+            margin: 0;
+            font-size: .7rem;
+        }
+    }
 }
 
 @media only screen and (max-width: 640px) {

@@ -16,10 +16,13 @@
         justify-content: center;
         align-items: center;
         animation-timing-function: none;
-
+        -webkit-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+        
         &:hover {
             // filter: brightness(110%);
-            border: 5px solid #888888;
+            border: 5px solid #888888 !important;
         }
 
     }
