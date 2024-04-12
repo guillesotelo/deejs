@@ -23,6 +23,7 @@
         text-align: center;
         width: 100%;
         margin: 0;
+        font-size: 1.5vw;
     }
 
     &__placeholder {
@@ -58,7 +59,7 @@
         &-number {
             margin: 0 .4vw 0 0;
             padding: 0 .7vw;
-            font-size: 1.2vw;
+            font-size: 1vw;
             border: 1px solid rgb(119, 179, 199);
             border-top-width: 5px;
         }
@@ -73,7 +74,7 @@
 
         &-title {
             margin: 0;
-            font-size: .9vw;
+            font-size: .8vw;
             overflow: hidden;
             white-space: nowrap;
             text-overflow: ellipsis;
@@ -82,7 +83,7 @@
 
         &-artist {
             margin: 0;
-            font-size: .8vw;
+            font-size: .7vw;
             overflow: hidden;
             white-space: nowrap;
             text-overflow: ellipsis;
@@ -95,12 +96,12 @@
             padding-right: .5vw;
             margin-right: .5vw;
             border-right: 1px solid gray;
-            font-size: .9vw;
+            font-size: .8vw;
         }
 
         &-duration {
             margin: 0;
-            font-size: .9vw;
+            font-size: .8vw;
         }
 
         &-bpn {
@@ -111,7 +112,7 @@
 
             &-number {
                 margin: 0;
-                font-size: 1.3vw;
+                font-size: 1vw;
                 text-align: center;
             }
 
@@ -119,7 +120,7 @@
                 margin: 0 0 .2vw 0;
                 height: .7vw;
                 line-height: .7vw;
-                font-size: .7vw;
+                font-size: .6vw;
                 text-align: end;
             }
         }

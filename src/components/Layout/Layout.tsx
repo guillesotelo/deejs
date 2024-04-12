@@ -21,6 +21,7 @@ export default function Layout({ }: Props) {
     const [leftTrackPath, setLeftTrackPath] = useState('')
     const [leftLoading, setLeftLoading] = useState(true)
     const [leftWavesurfer, setLeftWavesurfer] = useState<WaveSurfer | null>(null)
+    const [leftFilters, setLeftFilters] = useState<BiquadFilterNode[] | null>(null)
     const [playLeft, setPlayLeft] = useState(false)
     const [leftTrackName, setLeftTrackName] = useState('')
     const [leftVolume, setLeftVolume] = useState(0.8)
@@ -32,13 +33,13 @@ export default function Layout({ }: Props) {
     const leftWaveformRef = useRef<any>()
     const leftWaveSurferRef = useRef<any>({ isPlaying: playLeft })
     const [leftMeta, setLeftMeta] = useState<{ [key: string]: any }>({})
-    const [leftFilterHi, setLeftFilterHi] = useState(0)
-    const [leftFilterMid, setLeftFilterMid] = useState(0)
-    const [leftFilterLow, setLeftFilterLow] = useState(0)
+    const [leftMediaNode, setLeftMediaNode] = useState<MediaElementAudioSourceNode | null>(null)
+    const [leftAudioContext, setLeftAudioContext] = useState<AudioContext | null>(null)
 
     const [rightTrackPath, setRightTrackPath] = useState('')
     const [rightLoading, setRightLoading] = useState(true)
     const [rightWavesurfer, setRightWavesurfer] = useState<WaveSurfer | null>(null)
+    const [rightFilters, setRightFilters] = useState<BiquadFilterNode[] | null>(null)
     const [playRight, setPlayRight] = useState(false)
     const [rightTrackName, setRightTrackName] = useState('')
     const [rightVolume, setRightVolume] = useState(0.8)
@@ -50,9 +51,8 @@ export default function Layout({ }: Props) {
     const rightWaveformRef = useRef<any>()
     const rightWaveSurferRef = useRef<any>({ isPlaying: playLeft })
     const [rightMeta, setRightMeta] = useState<{ [key: string]: any }>({})
-    const [rightFilterHi, setRightFilterHi] = useState(0)
-    const [rightFilterMid, setRightFilterMid] = useState(0)
-    const [rightFilterLow, setRightFilterLow] = useState(0)
+    const [rightMediaNode, setRightMediaNode] = useState<MediaElementAudioSourceNode | null>(null)
+    const [rightAudioContext, setRightAudioContext] = useState<AudioContext | null>(null)
 
     const [mixer, setMixer] = useState(.5)
     const [showLayouts, setShowLayouts] = useState(true)
@@ -64,17 +64,28 @@ export default function Layout({ }: Props) {
     const [kPressed, setKPressed] = useState(false)
 
     // console.log('metas', metas)
+    // console.log('leftFilters', leftFilters)
+    // console.log('rightFilters', rightFilters)
 
     useEffect(() => {
-        // Filter logic
-    }, [
-        leftFilterHi,
-        leftFilterMid,
-        leftFilterLow,
-        rightFilterHi,
-        rightFilterMid,
-        rightFilterLow
-    ])
+        if (leftFilters && leftAudioContext) {
+            const equalizer = leftFilters.reduce((prev: any, curr) => {
+                prev.connect(curr)
+                return curr
+            }, leftMediaNode)
+
+            equalizer.connect(leftAudioContext.destination)
+        }
+
+        if (rightFilters && rightAudioContext) {
+            const equalizer = rightFilters.reduce((prev: any, curr) => {
+                prev.connect(curr)
+                return curr
+            }, rightMediaNode)
+
+            equalizer.connect(rightAudioContext.destination)
+        }
+    }, [leftFilters, rightFilters])
 
     useEffect(() => {
         if (leftMeta && leftMeta.common) setMetas([...metas, leftMeta.common])
@@ -179,11 +190,11 @@ export default function Layout({ }: Props) {
         let animationFrameId: number
         let prevVolume: number | null = null
 
-        const calculateVolumeInDecibels = (audioElement: HTMLAudioElement) => {
+        const processAudio = (audioElement: HTMLAudioElement) => {
             const audioContext = new AudioContext()
             const analyser = audioContext.createAnalyser()
-            const source = audioContext.createMediaElementSource(audioElement)
-            source.connect(analyser)
+            const mediaNode = audioContext.createMediaElementSource(audioElement)
+            mediaNode.connect(analyser)
             analyser.connect(audioContext.destination)
 
             analyser.fftSize = 256
@@ -213,7 +224,7 @@ export default function Layout({ }: Props) {
         if (leftWavesurfer) {
             const audioElement = leftWavesurfer.getMediaElement()
             if (audioElement) {
-                calculateVolumeInDecibels(audioElement)
+                processAudio(audioElement)
             }
         }
 
@@ -226,11 +237,11 @@ export default function Layout({ }: Props) {
         let animationFrameId: number
         let prevVolume: number | null = null
 
-        const calculateVolumeInDecibels = (audioElement: HTMLAudioElement) => {
+        const processAudio = (audioElement: HTMLAudioElement) => {
             const audioContext = new AudioContext()
             const analyser = audioContext.createAnalyser()
-            const source = audioContext.createMediaElementSource(audioElement)
-            source.connect(analyser)
+            const mediaNode = audioContext.createMediaElementSource(audioElement)
+            mediaNode.connect(analyser)
             analyser.connect(audioContext.destination)
 
             analyser.fftSize = 256
@@ -260,7 +271,7 @@ export default function Layout({ }: Props) {
         if (rightWavesurfer) {
             const audioElement = rightWavesurfer.getMediaElement()
             if (audioElement) {
-                calculateVolumeInDecibels(audioElement)
+                processAudio(audioElement)
             }
         }
 
@@ -275,6 +286,49 @@ export default function Layout({ }: Props) {
         leftWavesurfer?.setVolume(leftMix)
         rightWavesurfer?.setVolume(rightMix)
     }, [leftVolume, rightVolume, mixer])
+
+    const createFilters = (audioContext: AudioContext) => {
+        const eqBands = [320, 1000, 3200]
+
+        const filters = eqBands.map((band) => {
+            const filter = audioContext.createBiquadFilter()
+            const bandType = band <= 320 ? 'lowshelf' : band >= 3200 ? 'highshelf' : 'peaking'
+            filter.type = bandType
+            filter.gain.value = 0
+            filter.frequency.value = band
+            return filter
+        })
+        return filters
+    }
+
+    const updateFilters = (side: string, type: string, gainValue: number) => {
+        if (side === 'left' && leftFilters) {
+            const filteres = leftFilters.map(filter => {
+                if (filter.type === type) filter.gain.value = gainValue
+                return filter
+            })
+            setLeftFilters(filteres)
+
+        }
+        if (side === 'right' && rightFilters) {
+            const filteres = rightFilters.map(filter => {
+                if (filter.type === type) filter.gain.value = gainValue
+                return filter
+            })
+            setRightFilters(filteres)
+        }
+    }
+
+    const getFilter = (side: string, type: string) => {
+        if (side === 'left' && leftFilters) {
+            const filter = leftFilters.find(filter => filter.type === type)
+            if (filter) return filter.gain.value
+        }
+        if (side === 'right' && rightFilters) {
+            const filter = rightFilters.find(filter => filter.type === type)
+            if (filter) return filter.gain.value
+        }
+    }
 
     const getTempo = async (audioBuffer: AudioBuffer | null, playbackRate: number, setTempo: (value: string) => void) => {
         if (audioBuffer) {
@@ -468,7 +522,7 @@ export default function Layout({ }: Props) {
                         </div>
                         :
                         <div className='waveform__row'>
-                            <div className="waveform__info" style={{ width: '50%' }}>
+                            <div className="waveform__info" style={{ width: '55%' }}>
                                 <p className="waveform__track-number">1</p>
                                 <div className="waveform__track-name">
                                     {leftTrackName ?
@@ -571,24 +625,24 @@ export default function Layout({ }: Props) {
                         <div className="layout__knobs">
                             <Knob
                                 label='HI'
-                                value={leftFilterHi}
-                                setValue={setLeftFilterHi}
-                                onReset={() => setLeftFilterHi(0)}
-                                reset={leftFilterHi === 0}
+                                value={getFilter('left', 'highshelf')}
+                                setValue={value => updateFilters('left', 'highshelf', value)}
+                                onReset={() => updateFilters('left', 'highshelf', 0)}
+                                reset={getFilter('left', 'highshelf') === 0}
                             />
                             <Knob
                                 label='MID'
-                                value={leftFilterMid}
-                                setValue={setLeftFilterMid}
-                                onReset={() => setLeftFilterMid(0)}
-                                reset={leftFilterMid === 0}
+                                value={getFilter('left', 'peaking')}
+                                setValue={value => updateFilters('left', 'peaking', value)}
+                                onReset={() => updateFilters('left', 'peaking', 0)}
+                                reset={getFilter('left', 'peaking') === 0}
                             />
                             <Knob
                                 label='LOW'
-                                value={leftFilterLow}
-                                setValue={setLeftFilterLow}
-                                onReset={() => setLeftFilterLow(0)}
-                                reset={leftFilterLow === 0}
+                                value={getFilter('left', 'lowshelf')}
+                                setValue={value => updateFilters('left', 'lowshelf', value)}
+                                onReset={() => updateFilters('left', 'lowshelf', 0)}
+                                reset={getFilter('left', 'lowshelf') === 0}
                             />
                         </div>
                         <Slider
@@ -606,24 +660,24 @@ export default function Layout({ }: Props) {
                         <div className="layout__knobs">
                             <Knob
                                 label='HI'
-                                value={rightFilterHi}
-                                setValue={setRightFilterHi}
-                                onReset={() => setRightFilterHi(0)}
-                                reset={rightFilterHi === 0}
+                                value={getFilter('right', 'highshelf')}
+                                setValue={value => updateFilters('right', 'highshelf', value)}
+                                onReset={() => updateFilters('right', 'highshelf', 0)}
+                                reset={getFilter('right', 'highshelf') === 0}
                             />
                             <Knob
                                 label='MID'
-                                value={rightFilterMid}
-                                setValue={setRightFilterMid}
-                                onReset={() => setRightFilterMid(0)}
-                                reset={rightFilterMid === 0}
+                                value={getFilter('right', 'peaking')}
+                                setValue={value => updateFilters('right', 'peaking', value)}
+                                onReset={() => updateFilters('right', 'peaking', 0)}
+                                reset={getFilter('right', 'peaking') === 0}
                             />
                             <Knob
                                 label='LOW'
-                                value={rightFilterLow}
-                                setValue={setRightFilterLow}
-                                onReset={() => setRightFilterLow(0)}
-                                reset={rightFilterLow === 0}
+                                value={getFilter('right', 'lowshelf')}
+                                setValue={value => updateFilters('right', 'lowshelf', value)}
+                                onReset={() => updateFilters('right', 'lowshelf', 0)}
+                                reset={getFilter('right', 'lowshelf') === 0}
                             />
                         </div>
                         <Slider
