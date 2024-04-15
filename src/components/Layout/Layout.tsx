@@ -154,8 +154,9 @@ export default function Layout({ }: Props) {
                 leftMidFilter.connect(leftLowFilter)
                 leftLowFilter.connect(leftAudioContext.destination)
 
-                setLeftAnalyser(analyser)
-
+                setLeftHighGain(0)
+                setLeftMidGain(0)
+                setLeftLowGain(0)
                 const leftHigh = document.querySelector('#left-high') as HTMLElement
                 const leftMid = document.querySelector('#left-mid') as HTMLElement
                 const leftLow = document.querySelector('#left-low') as HTMLElement
@@ -171,6 +172,8 @@ export default function Layout({ }: Props) {
                     leftLowFilter.gain.value = e.target ? Number(e.target.value) : 0
                     setLeftLowGain(Number(e.target.value))
                 }
+
+                setLeftAnalyser(analyser)
             })
 
             setLeftWavesurfer(waveSurferInstance)
@@ -222,8 +225,9 @@ export default function Layout({ }: Props) {
                 rightMidFilter.connect(rightLowFilter)
                 rightLowFilter.connect(rightAudioContext.destination)
 
-                setRightAnalyser(analyser)
-
+                setRightHighGain(0)
+                setRightMidGain(0)
+                setRightLowGain(0)
                 const rightHigh = document.querySelector('#right-high') as HTMLElement
                 const rightMid = document.querySelector('#right-mid') as HTMLElement
                 const rightLow = document.querySelector('#right-low') as HTMLElement
@@ -239,6 +243,8 @@ export default function Layout({ }: Props) {
                     rightLowFilter.gain.value = e.target ? Number(e.target.value) : 0
                     setRightLowGain(Number(e.target.value))
                 }
+
+                setRightAnalyser(analyser)
             })
 
             setRightWavesurfer(waveSurferInstance)
