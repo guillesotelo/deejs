@@ -1,23 +1,27 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { FormEventHandler, Ref, useEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
 import Draggable from 'gsap/Draggable'
+import { GeneralEventTypes } from 'wavesurfer.js/dist/event-emitter'
 gsap.registerPlugin(Draggable)
 
 interface KnobProps {
     label?: string
-    value?: number
+    value: number
     setValue?: (rotation: number) => void
     onReset?: () => void
     reset?: boolean
+    max: number
+    id?: string
 }
 
-const Knob: React.FC<KnobProps> = ({ label, setValue, onReset, reset, value }) => {
+const Knob: React.FC<KnobProps> = ({ label, setValue, onReset, reset, value, max, id }) => {
     const maxRotation = 150
     const minRotation = -150
     const wheelRef = useRef<SVGSVGElement>(null)
+    const inputRef = useRef<any>(null)
 
     useEffect(() => {
-        if (wheelRef.current) gsap.set(wheelRef.current, { rotation: value })
+        if (wheelRef.current) gsap.set(wheelRef.current, { rotation: value * max / 6 })
     }, [value])
 
     useEffect(() => {
@@ -27,7 +31,13 @@ const Knob: React.FC<KnobProps> = ({ label, setValue, onReset, reset, value }) =
                 bounds: { minRotation, maxRotation },
                 onDrag: () => {
                     if (setValue && draggable) {
-                        setValue(draggable.rotation)
+                        const newValue = !draggable.rotation ? 0 : draggable.rotation / max * 6
+                        setValue(newValue)
+                        if (inputRef.current) {
+                            // If you are reading this, I can explain...
+                            inputRef.current.value = newValue
+                            inputRef.current.dispatchEvent(new Event('change'))
+                        }
                     }
                 }
             })[0]
@@ -38,10 +48,19 @@ const Knob: React.FC<KnobProps> = ({ label, setValue, onReset, reset, value }) =
         }
     }, [])
 
+    const resetValue = () => {
+        if (onReset) onReset()
+        if (setValue) setValue(0)
+        if (inputRef.current) {
+            inputRef.current.value = 0
+            inputRef.current.dispatchEvent(new Event('change'))
+        }
+    }
+
     return (
         <div className='knob__container'>
             <div className="knob__reset">
-                <button className="knob__reset-btn" onClick={onReset} style={{ backgroundColor: reset ? '#289a28' : '' }} />
+                <button className="knob__reset-btn" onClick={resetValue} style={{ backgroundColor: reset ? '#289a28' : '' }} />
             </div>
             <div className="knob__col">
                 <h4 className="knob__label">{label}</h4>
@@ -50,6 +69,8 @@ const Knob: React.FC<KnobProps> = ({ label, setValue, onReset, reset, value }) =
                     <line x1="50" y1="50" x2="50" y2="10" stroke="lightgray" strokeWidth="3" />
                 </svg>
             </div>
+
+            <input type='range' min={-max} max={max} id={id} ref={inputRef} style={{ display: 'none'}} ></input>
         </div>
     )
 }
