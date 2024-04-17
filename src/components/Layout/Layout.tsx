@@ -14,6 +14,8 @@ import { formatTime } from '../../helpers'
 import { analyze } from 'web-audio-beat-detector'
 import DjsLogo from '../../assets/images/djs-logo-black.png'
 import { APP_VERSION } from '../../constants/app'
+import TrackSelector from '../TrackSelector/TrackSelector'
+import { getAllRecordsFromDB, saveAudioToDB } from '../../indexedDB'
 
 type Props = {}
 
@@ -38,7 +40,6 @@ export default function Layout({ }: Props) {
     const [leftMidGain, setLeftMidGain] = useState<number>(0)
     const [leftLowGain, setLeftLowGain] = useState<number>(0)
 
-
     const [rightTrackPath, setRightTrackPath] = useState('')
     const [rightLoading, setRightLoading] = useState(true)
     const [rightWavesurfer, setRightWavesurfer] = useState<WaveSurfer | null>(null)
@@ -62,6 +63,8 @@ export default function Layout({ }: Props) {
     const [mixer, setMixer] = useState(.5)
     const [showLayouts, setShowLayouts] = useState(false)
     const [metas, setMetas] = useState(JSON.parse(localStorage.getItem('metas') || '[]'))
+    const [loadedTracks, setLoadedTracks] = useState<any>({})
+    const [selectedTrack, setSelectedTrack] = useState('')
 
     const [aPressed, setAPressed] = useState(false)
     const [zPressed, setZPressed] = useState(false)
@@ -95,11 +98,49 @@ export default function Layout({ }: Props) {
     rightLowFilter.frequency.value = 150
     rightLowFilter.gain.value = 0
 
+    console.log('LoadedTracks', loadedTracks)
 
     useEffect(() => {
-        if (leftMeta && leftMeta.common) setMetas([...metas, leftMeta.common])
-        if (rightMeta && rightMeta.common) setMetas([...metas, rightMeta.common])
-    }, [leftMeta, rightMeta])
+        getLoadedTracksFromDB()
+    }, [])
+
+    useEffect(() => {
+        // Process audio metadata & load audio locally
+        if (leftTrackPath && leftMeta && leftMeta.common && leftBpn) {
+            const { artist, title, album } = leftMeta.common
+            const id = `${artist} - ${title} - ${album}`
+            const exists = Object.keys(loadedTracks).includes(id)
+            if (!exists) {
+                const updatedLoadedTracks = { ...loadedTracks }
+                const newTrack = {
+                    ...leftMeta.common,
+                    audioPath: leftTrackPath,
+                    bpn: leftBpn,
+                    id
+                }
+                updatedLoadedTracks[id] = newTrack
+                saveTrackToDB(newTrack)
+                setLoadedTracks(updatedLoadedTracks)
+            }
+        }
+        if (rightTrackPath && rightMeta && rightMeta.common && rightBpn) {
+            const { artist, title, album } = rightMeta.common
+            const id = `${artist} - ${title} - ${album}`
+            const exists = Object.keys(loadedTracks).includes(id)
+            if (!exists) {
+                const updatedLoadedTracks = { ...loadedTracks }
+                const newTrack = {
+                    ...rightMeta.common,
+                    audioPath: rightTrackPath,
+                    bpn: rightBpn,
+                    id
+                }
+                updatedLoadedTracks[id] = newTrack
+                saveTrackToDB(newTrack)
+                setLoadedTracks(updatedLoadedTracks)
+            }
+        }
+    }, [leftBpn, rightBpn])
 
     useEffect(() => {
         if (leftWavesurfer) getTempo(leftWavesurfer.getDecodedData(), leftWavesurfer.getPlaybackRate(), setLeftBpn)
@@ -107,13 +148,14 @@ export default function Layout({ }: Props) {
     }, [leftPitch, rightPitch])
 
     useEffect(() => {
+        // Stop tracks when audio ends
         if (leftElapsed >= leftDuration) stopLeftTrack()
         if (rightElapsed >= rightDuration) stopRightTrack()
     }, [leftElapsed, rightElapsed])
 
     useEffect(() => {
+        // Load left track instance and process filters
         if (leftWaveformRef && leftWaveformRef.current) {
-
             const audio = new Audio()
             audio.controls = true
             audio.src = leftTrackPath
@@ -183,8 +225,8 @@ export default function Layout({ }: Props) {
     }, [leftTrackPath])
 
     useEffect(() => {
+        // Load right track instance and process filters
         if (rightWaveformRef && rightWaveformRef.current) {
-
             const audio = new Audio()
             audio.controls = true
             audio.src = rightTrackPath
@@ -260,6 +302,7 @@ export default function Layout({ }: Props) {
     }, [leftTrackPath, rightTrackPath, playLeft, playRight])
 
     useEffect(() => {
+        // Process left vumeter
         let animationFrameId: number
         let prevVolume: number | null = null
 
@@ -294,6 +337,7 @@ export default function Layout({ }: Props) {
     }, [leftWavesurfer, leftAnalyser])
 
     useEffect(() => {
+        // Process right vumeter
         let animationFrameId: number
         let prevVolume: number | null = null
 
@@ -329,51 +373,28 @@ export default function Layout({ }: Props) {
     }, [rightWavesurfer, rightAnalyser])
 
     useEffect(() => {
+        // Mix
         const leftMix = leftVolume + (mixer > 0.5 ? -(leftVolume * (mixer - 0.5) * 2) : 0)
         const rightMix = rightVolume + (mixer < 0.5 ? (rightVolume * (mixer - 0.5) * 2) : 0)
         leftWavesurfer?.setVolume(leftMix)
         rightWavesurfer?.setVolume(rightMix)
     }, [leftVolume, rightVolume, mixer])
 
-    const createFilters = (audioContext: AudioContext) => {
-        const eqBands = [320, 1000, 3200]
-
-        const filters = eqBands.map((band) => {
-            const filter = audioContext.createBiquadFilter()
-            const bandType = band <= 320 ? 'lowshelf' : band >= 3200 ? 'highshelf' : 'peaking'
-            filter.type = bandType
-            filter.gain.value = 0
-            filter.frequency.value = band
-            return filter
-        })
-        return filters
-    }
-
-    const updateFilters = (side: string, type: string, gainValue: number) => {
-        if (side === 'left' && leftFilters) {
-            const filteres = leftFilters.map(filter => {
-                if (filter.type === type) filter.gain.value = gainValue
-                return filter
-            })
-            setLeftFilters(filteres)
-        }
-        if (side === 'right' && rightFilters) {
-            const filteres = rightFilters.map(filter => {
-                if (filter.type === type) filter.gain.value = gainValue
-                return filter
-            })
-            setRightFilters(filteres)
+    const saveTrackToDB = async (trackData: any) => {
+        try {
+            await saveAudioToDB(trackData)
+            await getLoadedTracksFromDB()
+        } catch (err) {
+            console.error(err)
         }
     }
 
-    const getFilter = (side: string, type: string) => {
-        if (side === 'left' && leftFilters) {
-            const filter = leftFilters.find(filter => filter.type === type)
-            if (filter) return filter.gain.value
-        }
-        if (side === 'right' && rightFilters) {
-            const filter = rightFilters.find(filter => filter.type === type)
-            if (filter) return filter.gain.value
+    const getLoadedTracksFromDB = async () => {
+        try {
+            const data = await getAllRecordsFromDB()
+            if (data && Object.keys(data).length) setLoadedTracks(data)
+        } catch (err) {
+            console.error(err)
         }
     }
 
@@ -407,8 +428,8 @@ export default function Layout({ }: Props) {
                 if (leftTrackPath && !playLeft) {
                     setAPressed(true)
                     playLeftTrack()
-                } 
-                else if(playLeft && !aPressed) stopLeftTrack()
+                }
+                else if (playLeft && !aPressed) stopLeftTrack()
                 break
             case 'z':
                 if (aPressed) return setZPressed(true)
@@ -559,6 +580,18 @@ export default function Layout({ }: Props) {
         setMixer(.5)
     }
 
+    const loadLeftTrack = () => {
+        setLeftLoading(true)
+        setLeftTrackPath(loadedTracks[selectedTrack].audioPath)
+        setLeftTrackName(loadedTracks[selectedTrack].title)
+    }
+
+    const loadRightTrack = () => {
+        setRightLoading(true)
+        setRightTrackPath(loadedTracks[selectedTrack].audioPath)
+        setRightTrackName(loadedTracks[selectedTrack].title)
+    }
+
     return (
         <div className="layout__container" tabIndex={0} style={{ outline: 'none' }}>
             <div className="layout__left">
@@ -647,18 +680,25 @@ export default function Layout({ }: Props) {
                 </div>
             </div>
             <div className="layout__center">
-                <Switch
-                    label='Show Layouts'
-                    on='YES'
-                    off='NO'
-                    value={showLayouts}
-                    setValue={setShowLayouts}
-                    style={{ transform: 'scale(.7)', marginBottom: '-4rem' }}
-                />
                 <div className="layout__center-screen">
-                    <div className="layout__center-screen-table">
+                    <TrackSelector
+                        data={loadedTracks}
+                        selected={selectedTrack}
+                        setSelected={setSelectedTrack}
+                    />
+                </div>
 
-                    </div>
+                <div className="layout__center-load">
+                    <Button
+                        label='Load A'
+                        handleClick={loadLeftTrack}
+                        disabled={!selectedTrack}
+                    />
+                    <Button
+                        label='Load B'
+                        handleClick={loadRightTrack}
+                        disabled={!selectedTrack}
+                    />
                 </div>
 
                 <div className="layout__logo">
