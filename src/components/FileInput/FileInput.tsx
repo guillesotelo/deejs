@@ -36,7 +36,7 @@ export default function FileInput({ setFile, setFileName, inputId, children, sho
     const getMetadata = async (objectURL: string) => {
         try {
             const metaData = await mm.fetchFromUrl(objectURL)
-            if (setMeta) setMeta(metaData)
+            if (setMeta) setMeta(metaData.common || {})
         } catch (error) {
             console.error(error)
         }

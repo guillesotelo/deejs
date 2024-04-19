@@ -26,8 +26,9 @@ export default function TrackSelector({ data, selected, setSelected }: Props) {
                     key={i}
                     className='trackselector__item'
                     style={{
-                        marginTop: i !== 0 ? '1px solid gray' : '',
-                        backgroundColor: selected === item.id ? '#353535' : ''
+                        borderTop: i !== 0 ? '1px solid #262626' : '',
+                        backgroundColor: selected === item.id ? '#353535' : '',
+                        paddingTop: i === 0 ? '1.5vw' : ''
                     }}
                     onClick={() => setSelected ? selected !== item.id ? setSelected(item.id) : setSelected('') : null}>
                     <div style={{ width: '40%' }}><p className='trackselector__item-value' >{item.title}</p></div>

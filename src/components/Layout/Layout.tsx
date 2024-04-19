@@ -33,7 +33,7 @@ export default function Layout({ }: Props) {
     const [leftDuration, setLeftDuration] = useState('00:00')
     const [leftBpn, setLeftBpn] = useState('0.00')
     const leftWaveformRef = useRef<any>()
-    const leftWaveSurferRef = useRef<any>({ isPlaying: playLeft })
+    const leftWaveSurferRef = useRef<any>(null)
     const [leftMeta, setLeftMeta] = useState<{ [key: string]: any }>({})
     const [leftAnalyser, setLeftAnalyser] = useState<AnalyserNode | null>(null)
     const [leftHighGain, setLeftHighGain] = useState<number>(0)
@@ -53,7 +53,7 @@ export default function Layout({ }: Props) {
     const [rightDuration, setRightDuration] = useState('00:00')
     const [rightBpn, setRightBpn] = useState('0.00')
     const rightWaveformRef = useRef<any>()
-    const rightWaveSurferRef = useRef<any>({ isPlaying: playLeft })
+    const rightWaveSurferRef = useRef<any>(null)
     const [rightMeta, setRightMeta] = useState<{ [key: string]: any }>({})
     const [rightAnalyser, setRightAnalyser] = useState<AnalyserNode | null>(null)
     const [rightHighGain, setRightHighGain] = useState<number>(0)
@@ -61,7 +61,7 @@ export default function Layout({ }: Props) {
     const [rightLowGain, setRightLowGain] = useState<number>(0)
 
     const [mixer, setMixer] = useState(.5)
-    const [showLayouts, setShowLayouts] = useState(false)
+    const [showLayouts, setShowLayouts] = useState(true)
     const [metas, setMetas] = useState(JSON.parse(localStorage.getItem('metas') || '[]'))
     const [loadedTracks, setLoadedTracks] = useState<any>({})
     const [selectedTrack, setSelectedTrack] = useState('')
@@ -70,35 +70,18 @@ export default function Layout({ }: Props) {
     const [zPressed, setZPressed] = useState(false)
     const [kPressed, setKPressed] = useState(false)
 
-    const leftAudioContext = new AudioContext()
-    let leftHighFilter = leftAudioContext.createBiquadFilter()
-    leftHighFilter.type = 'highshelf'
-    leftHighFilter.frequency.value = 10000
-    leftHighFilter.gain.value = 0
-    let leftMidFilter = leftAudioContext.createBiquadFilter()
-    leftMidFilter.type = 'peaking'
-    leftMidFilter.frequency.value = 1000
-    leftMidFilter.gain.value = 0
-    let leftLowFilter = leftAudioContext.createBiquadFilter()
-    leftLowFilter.type = 'lowshelf'
-    leftLowFilter.frequency.value = 150
-    leftLowFilter.gain.value = 0
+    const leftAudioContextRef = useRef<AudioContext | null>(null)
+    const leftHighFilterRef = useRef<BiquadFilterNode | null>(null)
+    const leftMidFilterRef = useRef<BiquadFilterNode | null>(null)
+    const leftLowFilterRef = useRef<BiquadFilterNode | null>(null)
 
-    const rightAudioContext = new AudioContext()
-    let rightHighFilter = rightAudioContext.createBiquadFilter()
-    rightHighFilter.type = 'highshelf'
-    rightHighFilter.frequency.value = 10000
-    rightHighFilter.gain.value = 0
-    let rightMidFilter = rightAudioContext.createBiquadFilter()
-    rightMidFilter.type = 'peaking'
-    rightMidFilter.frequency.value = 1000
-    leftMidFilter.gain.value = 0
-    let rightLowFilter = rightAudioContext.createBiquadFilter()
-    rightLowFilter.type = 'lowshelf'
-    rightLowFilter.frequency.value = 150
-    rightLowFilter.gain.value = 0
+    const rightAudioContextRef = useRef<AudioContext | null>(null)
+    const rightHighFilterRef = useRef<BiquadFilterNode | null>(null)
+    const rightMidFilterRef = useRef<BiquadFilterNode | null>(null)
+    const rightLowFilterRef = useRef<BiquadFilterNode | null>(null)
 
-    console.log('LoadedTracks', loadedTracks)
+    // console.log('LoadedTracks', loadedTracks)
+    console.log('leftWaveSurferRef', leftWaveSurferRef)
 
     useEffect(() => {
         getLoadedTracksFromDB()
@@ -106,14 +89,14 @@ export default function Layout({ }: Props) {
 
     useEffect(() => {
         // Process audio metadata & load audio locally
-        if (leftTrackPath && leftMeta && leftMeta.common && leftBpn) {
-            const { artist, title, album } = leftMeta.common
+        if (leftTrackPath && leftMeta && leftMeta.title && leftBpn) {
+            const { artist, title, album } = leftMeta
             const id = `${artist} - ${title} - ${album}`
             const exists = Object.keys(loadedTracks).includes(id)
             if (!exists) {
                 const updatedLoadedTracks = { ...loadedTracks }
                 const newTrack = {
-                    ...leftMeta.common,
+                    ...leftMeta,
                     audioPath: leftTrackPath,
                     bpn: leftBpn,
                     id
@@ -123,14 +106,14 @@ export default function Layout({ }: Props) {
                 setLoadedTracks(updatedLoadedTracks)
             }
         }
-        if (rightTrackPath && rightMeta && rightMeta.common && rightBpn) {
-            const { artist, title, album } = rightMeta.common
+        if (rightTrackPath && rightMeta && rightMeta.title && rightBpn) {
+            const { artist, title, album } = rightMeta
             const id = `${artist} - ${title} - ${album}`
             const exists = Object.keys(loadedTracks).includes(id)
             if (!exists) {
                 const updatedLoadedTracks = { ...loadedTracks }
                 const newTrack = {
-                    ...rightMeta.common,
+                    ...rightMeta,
                     audioPath: rightTrackPath,
                     bpn: rightBpn,
                     id
@@ -185,16 +168,31 @@ export default function Layout({ }: Props) {
                 setLeftDuration(formatTime(waveSurferInstance.getDuration()))
                 getTempo(waveSurferInstance.getDecodedData(), waveSurferInstance.getPlaybackRate(), setLeftBpn)
 
-                const analyser = leftAudioContext.createAnalyser()
+                leftAudioContextRef.current = new AudioContext()
+                leftHighFilterRef.current = leftAudioContextRef.current.createBiquadFilter()
+                leftMidFilterRef.current = leftAudioContextRef.current.createBiquadFilter()
+                leftLowFilterRef.current = leftAudioContextRef.current.createBiquadFilter()
+
+                leftHighFilterRef.current.type = 'highshelf'
+                leftHighFilterRef.current.frequency.value = 10000
+                leftHighFilterRef.current.gain.value = 0
+                leftMidFilterRef.current.type = 'peaking'
+                leftMidFilterRef.current.frequency.value = 1000
+                leftMidFilterRef.current.gain.value = 0
+                leftLowFilterRef.current.type = 'lowshelf'
+                leftLowFilterRef.current.frequency.value = 150
+                leftLowFilterRef.current.gain.value = 0
+
+                const analyser = leftAudioContextRef.current.createAnalyser()
                 analyser.fftSize = 256
                 analyser.smoothingTimeConstant = 0.8
-                const mediaNode = leftAudioContext.createMediaElementSource(audio)
+                const mediaNode = leftAudioContextRef.current.createMediaElementSource(audio)
 
                 mediaNode.connect(analyser)
-                analyser.connect(leftHighFilter)
-                leftHighFilter.connect(leftMidFilter)
-                leftMidFilter.connect(leftLowFilter)
-                leftLowFilter.connect(leftAudioContext.destination)
+                analyser.connect(leftHighFilterRef.current)
+                leftHighFilterRef.current.connect(leftMidFilterRef.current)
+                leftMidFilterRef.current.connect(leftLowFilterRef.current)
+                leftLowFilterRef.current.connect(leftAudioContextRef.current.destination)
 
                 setLeftHighGain(0)
                 setLeftMidGain(0)
@@ -203,15 +201,15 @@ export default function Layout({ }: Props) {
                 const leftMid = document.querySelector('#left-mid') as HTMLElement
                 const leftLow = document.querySelector('#left-low') as HTMLElement
                 if (leftHigh) leftHigh.onchange = (e: any) => {
-                    leftHighFilter.gain.value = e.target ? Number(e.target.value) : 0
+                    if (leftHighFilterRef.current) leftHighFilterRef.current.gain.value = e.target ? Number(e.target.value) : 0
                     setLeftHighGain(Number(e.target.value))
                 }
                 if (leftMid) leftMid.onchange = (e: any) => {
-                    leftMidFilter.gain.value = e.target ? Number(e.target.value) : 0
+                    if (leftMidFilterRef.current) leftMidFilterRef.current.gain.value = e.target ? Number(e.target.value) : 0
                     setLeftMidGain(Number(e.target.value))
                 }
                 if (leftLow) leftLow.onchange = (e: any) => {
-                    leftLowFilter.gain.value = e.target ? Number(e.target.value) : 0
+                    if (leftLowFilterRef.current) leftLowFilterRef.current.gain.value = e.target ? Number(e.target.value) : 0
                     setLeftLowGain(Number(e.target.value))
                 }
 
@@ -256,16 +254,31 @@ export default function Layout({ }: Props) {
                 setRightDuration(formatTime(waveSurferInstance.getDuration()))
                 getTempo(waveSurferInstance.getDecodedData(), waveSurferInstance.getPlaybackRate(), setRightBpn)
 
-                const analyser = rightAudioContext.createAnalyser()
+                rightAudioContextRef.current = new AudioContext()
+                rightHighFilterRef.current = rightAudioContextRef.current.createBiquadFilter()
+                rightMidFilterRef.current = rightAudioContextRef.current.createBiquadFilter()
+                rightLowFilterRef.current = rightAudioContextRef.current.createBiquadFilter()
+
+                rightHighFilterRef.current.type = 'highshelf'
+                rightHighFilterRef.current.frequency.value = 10000
+                rightHighFilterRef.current.gain.value = 0
+                rightMidFilterRef.current.type = 'peaking'
+                rightMidFilterRef.current.frequency.value = 1000
+                rightMidFilterRef.current.gain.value = 0
+                rightLowFilterRef.current.type = 'lowshelf'
+                rightLowFilterRef.current.frequency.value = 150
+                rightLowFilterRef.current.gain.value = 0
+
+                const analyser = rightAudioContextRef.current.createAnalyser()
                 analyser.fftSize = 256
                 analyser.smoothingTimeConstant = 0.8
-                const mediaNode = rightAudioContext.createMediaElementSource(audio)
+                const mediaNode = rightAudioContextRef.current.createMediaElementSource(audio)
 
                 mediaNode.connect(analyser)
-                analyser.connect(rightHighFilter)
-                rightHighFilter.connect(rightMidFilter)
-                rightMidFilter.connect(rightLowFilter)
-                rightLowFilter.connect(rightAudioContext.destination)
+                analyser.connect(rightHighFilterRef.current)
+                rightHighFilterRef.current.connect(rightMidFilterRef.current)
+                rightMidFilterRef.current.connect(rightLowFilterRef.current)
+                rightLowFilterRef.current.connect(rightAudioContextRef.current.destination)
 
                 setRightHighGain(0)
                 setRightMidGain(0)
@@ -274,15 +287,15 @@ export default function Layout({ }: Props) {
                 const rightMid = document.querySelector('#right-mid') as HTMLElement
                 const rightLow = document.querySelector('#right-low') as HTMLElement
                 if (rightHigh) rightHigh.onchange = (e: any) => {
-                    rightHighFilter.gain.value = e.target ? Number(e.target.value) : 0
+                    if (rightHighFilterRef.current) rightHighFilterRef.current.gain.value = e.target ? Number(e.target.value) : 0
                     setRightHighGain(Number(e.target.value))
                 }
                 if (rightMid) rightMid.onchange = (e: any) => {
-                    rightMidFilter.gain.value = e.target ? Number(e.target.value) : 0
+                    if (rightMidFilterRef.current) rightMidFilterRef.current.gain.value = e.target ? Number(e.target.value) : 0
                     setRightMidGain(Number(e.target.value))
                 }
                 if (rightLow) rightLow.onchange = (e: any) => {
-                    rightLowFilter.gain.value = e.target ? Number(e.target.value) : 0
+                    if (rightLowFilterRef.current) rightLowFilterRef.current.gain.value = e.target ? Number(e.target.value) : 0
                     setRightLowGain(Number(e.target.value))
                 }
 
@@ -334,7 +347,7 @@ export default function Layout({ }: Props) {
         return () => {
             cancelAnimationFrame(animationFrameId)
         }
-    }, [leftWavesurfer, leftAnalyser])
+    }, [leftAnalyser])
 
     useEffect(() => {
         // Process right vumeter
@@ -370,7 +383,7 @@ export default function Layout({ }: Props) {
         return () => {
             cancelAnimationFrame(animationFrameId)
         }
-    }, [rightWavesurfer, rightAnalyser])
+    }, [rightAnalyser])
 
     useEffect(() => {
         // Mix
@@ -408,11 +421,11 @@ export default function Layout({ }: Props) {
     const loadTrack = (side: string, track: string) => {
         if (track) {
             if (side === 'left') {
-                stopLeftTrack()
+                // if (leftWaveSurferRef.current) leftWaveSurferRef.current.destroy()
                 setLeftTrackPath(track)
             }
             if (side === 'right') {
-                stopRightTrack()
+                // if (rightWaveSurferRef.current) rightWaveSurferRef.current.destroy()
                 setRightTrackPath(track)
             }
         }
@@ -498,33 +511,67 @@ export default function Layout({ }: Props) {
         if (input) input.click()
     }
 
-    const playLeftTrack = () => {
-        if (leftWaveSurferRef.current && leftWaveSurferRef.current.pause) {
-            if (leftWaveSurferRef.current.isPlaying()) leftWaveSurferRef.current.pause()
-            else leftWaveSurferRef.current.play()
-            setPlayLeft(leftWaveSurferRef.current.isPlaying())
-        } else openFileLoaderLeft()
+    const playLeftTrack = async () => {
+        try {
+            const waveSurfer = leftWaveSurferRef.current
+            if (!waveSurfer) return openFileLoaderLeft()
+
+            await waveSurfer.playPause()
+            setPlayLeft(waveSurfer.isPlaying())
+
+            // if (waveSurfer.isPlaying()) {
+            //     waveSurfer.pause()
+            //     setPlayLeft(false)
+            // } else {
+            //     waveSurfer.play()
+            //     setPlayLeft(true)
+            // }
+        } catch (error) {
+            console.error(error)
+        }
     }
 
-    const playRightTrack = () => {
-        if (rightWaveSurferRef.current && rightWaveSurferRef.current.play) {
-            if (rightWaveSurferRef.current.isPlaying()) rightWaveSurferRef.current.pause()
-            else rightWaveSurferRef.current.play()
-            setPlayRight(rightWaveSurferRef.current.isPlaying())
-        } else openFileLoaderRight()
+    const playRightTrack = async () => {
+        try {
+            const waveSurfer = rightWaveSurferRef.current
+            if (!waveSurfer) return openFileLoaderRight()
+
+            await waveSurfer.playPause()
+            setPlayRight(waveSurfer.isPlaying())
+
+            // if (waveSurfer.isPlaying()) {
+            //     waveSurfer.pause()
+            //     setPlayRight(false)
+            // } else {
+            //     waveSurfer.play()
+            //     setPlayRight(true)
+            // }
+        } catch (error) {
+            console.error(error)
+        }
     }
 
     const stopLeftTrack = () => {
-        if (leftWaveSurferRef.current && leftWaveSurferRef.current.stop) {
-            leftWaveSurferRef.current.stop()
-            setPlayLeft(leftWaveSurferRef.current.isPlaying())
+        try {
+            const waveSurfer = leftWaveSurferRef.current
+            if (waveSurfer) {
+                waveSurfer.stop()
+                setPlayLeft(false)
+            }
+        } catch (error) {
+            console.error(error)
         }
     }
 
     const stopRightTrack = () => {
-        if (rightWaveSurferRef.current && rightWaveSurferRef.current.stop) {
-            rightWaveSurferRef.current.stop()
-            setPlayRight(rightWaveSurferRef.current.isPlaying())
+        try {
+            const waveSurfer = rightWaveSurferRef.current
+            if (waveSurfer) {
+                waveSurfer.stop()
+                setPlayRight(false)
+            }
+        } catch (error) {
+            console.error(error)
         }
     }
 
@@ -544,36 +591,52 @@ export default function Layout({ }: Props) {
     }
 
     const handleleftPitch = (e: any) => {
-        const { value } = e.target
-        const decimaVal = value / 100
-        setLeftPitch(decimaVal)
-        leftWavesurfer?.setPlaybackRate(1 + ((decimaVal - 0.5) / 3))
+        try {
+            const { value } = e.target
+            const decimaVal = value / 100
+            setLeftPitch(decimaVal)
+            leftWavesurfer?.setPlaybackRate(1 + ((decimaVal - 0.5) / 3))
+        } catch (error) {
+            console.error(error)
+        }
     }
 
     const handlerightPitch = (e: any) => {
-        const { value } = e.target
-        const decimaVal = value / 100
-        setRightPitch(decimaVal)
-        rightWavesurfer?.setPlaybackRate(1 + ((decimaVal - 0.5) / 3))
+        try {
+            const { value } = e.target
+            const decimaVal = value / 100
+            setRightPitch(decimaVal)
+            rightWavesurfer?.setPlaybackRate(1 + ((decimaVal - 0.5) / 3))
+        } catch (error) {
+            console.error(error)
+        }
     }
 
     const getTrackMeta = (tag: string, deck: string) => {
-        if (deck === 'left' && leftMeta.common) {
-            return String(leftMeta.common[tag])
+        if (deck === 'left') {
+            return String(leftMeta[tag])
         }
-        if (deck === 'right' && rightMeta.common) {
-            return String(rightMeta.common[tag])
+        if (deck === 'right') {
+            return String(rightMeta[tag])
         }
     }
 
     const onResetLeftPitch = () => {
-        setLeftPitch(.5)
-        leftWavesurfer?.setPlaybackRate(1)
+        try {
+            setLeftPitch(.5)
+            leftWavesurfer?.setPlaybackRate(1)
+        } catch (error) {
+            console.error(error)
+        }
     }
 
     const onResetRightPitch = () => {
-        setRightPitch(.5)
-        rightWavesurfer?.setPlaybackRate(1)
+        try {
+            setRightPitch(.5)
+            rightWavesurfer?.setPlaybackRate(1)
+        } catch (error) {
+            console.error(error)
+        }
     }
 
     const onResetMixer = () => {
@@ -581,15 +644,25 @@ export default function Layout({ }: Props) {
     }
 
     const loadLeftTrack = () => {
-        setLeftLoading(true)
-        setLeftTrackPath(loadedTracks[selectedTrack].audioPath)
-        setLeftTrackName(loadedTracks[selectedTrack].title)
+        // if (leftWaveSurferRef.current) leftWaveSurferRef.current.destroy()
+        const { audioPath, title } = loadedTracks[selectedTrack]
+        if (audioPath && title !== leftTrackName) {
+            setLeftLoading(true)
+            setLeftTrackPath(audioPath)
+            setLeftTrackName(title)
+            setLeftMeta({ ...loadedTracks[selectedTrack], audioPath: null })
+        }
     }
 
     const loadRightTrack = () => {
-        setRightLoading(true)
-        setRightTrackPath(loadedTracks[selectedTrack].audioPath)
-        setRightTrackName(loadedTracks[selectedTrack].title)
+        // if (rightWaveSurferRef.current) rightWaveSurferRef.current.destroy()
+        const { audioPath, title } = loadedTracks[selectedTrack]
+        if (audioPath && title !== rightTrackName) {
+            setRightLoading(true)
+            setRightTrackPath(audioPath)
+            setRightTrackName(title)
+            setRightMeta({ ...loadedTracks[selectedTrack], audioPath: null })
+        }
     }
 
     return (

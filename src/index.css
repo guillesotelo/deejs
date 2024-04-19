@@ -8,3 +8,13 @@ body {
   overflow: hidden;
   font-family: 'Open Sans', sans-serif;
 }
+
+::-webkit-scrollbar {
+  background: #000000;
+  width: 5px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #515151;
+  /* border-radius: 5px; */
+}
