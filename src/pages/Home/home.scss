@@ -2,19 +2,7 @@
     &__container {
         display: flex;
         flex-direction: column;
-
-        &--rotated {
-            display: flex;
-            flex-direction: column;
-            transform: rotate(90deg);
-            transform-origin: left top;
-            width: 100vh;
-            height: 100vw;
-            position: absolute;
-            top: 0;
-            left: 0;
-            overflow: hidden;
-        }
+        // padding: 1rem;
     }
 
 }
@@ -22,16 +10,6 @@
 @media only screen and (max-width: 640px) {
     .home {
         &__container {
-            &--rotated {
-                transform: rotate(90deg);
-                transform-origin: left top;
-                width: 100vh;
-                height: 100vw;
-                position: absolute;
-                top: 0;
-                left: 0;
-                overflow: hidden;
-            }
         }
     }
 }

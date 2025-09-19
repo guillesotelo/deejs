@@ -3,11 +3,9 @@
 html,
 body {
   margin: 0;
-  padding: 0;
-  overflow: hidden;
-  height: 100%;
-  color: lightgray;
   background-color: rgb(25, 25, 25);
+  color: lightgray;
+  overflow: hidden;
   font-family: 'Open Sans', sans-serif;
 }
 
